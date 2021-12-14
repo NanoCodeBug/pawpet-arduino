@@ -1,0 +1,396 @@
+#include "src/common.h"
+#include "RTCZero.h"
+// #include "src/lib/ArduinoLowPower.h"
+#include "src/gamestate.h"
+#include "wiring_private.h"
+#include "src/lib/PawPet_FlashTransport.h"
+
+SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
+
+SPIClass flashSPI(&sercom2, FLASH_MISO, FLASH_SCK, FLASH_MOSI, SPI_PAD_0_SCK_1, SERCOM_RX_PAD_2);
+
+PawPet_FlashTransport_SPI flashTransport(FLASH_CS, flashSPI);
+Adafruit_SPIFlash flash(&flashTransport);
+
+PetDisplay display(&dispSPI, SHARP_SS, DISP_WIDTH, DISP_HEIGHT);
+GameState *currentState;
+
+volatile bool buttonWakeup;
+volatile uint32_t nextSleepTime;
+
+void buttonWakeupCallback();
+uint16_t readButtons();
+void drawOverlay(uint16_t inputState);
+
+// USB Mass Storage object
+Adafruit_USBD_MSC usb_msc;
+
+// Set to true when PC write to flash
+bool changed;
+uint32_t usbConnectedTime = false;
+
+static char buffer[80];
+
+void setup(void)
+{
+    // Serial.begin(9600);
+    
+    // while (!Serial) {
+    //     ; // wait for serial port to connect. 
+    // }
+
+    display.begin();
+    flashSPI.begin();
+   
+    //    Pin	Arduino 'Pin'	SERCOM		SERCOM alt
+    // -----------------------------------------
+    // PA14	D2		SERCOM2.2	SERCOM4.2       FLASH_MISO
+    // PA09	D3		SERCOM0.1	SERCOM2.1       FLASH_SCK
+    // PA08	D4		SERCOM0.0	SERCOM2.0       FLASH_MOSI
+    // PA15	D5		SERCOM2.3	SERCOM4.3       PIN_BUTTON_C
+    
+    // specific to flash versions using these pins, move to config.h
+    analogReadResolution(12);
+
+    pinPeripheral(FLASH_MISO, PIO_SERCOM);
+    pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
+    pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
+    pinPeripheral(FLASH_CS, PIO_DIGITAL);
+
+    tone(PIN_BEEPER, NOTE_C4, 250);
+    delay(500);
+
+    // display.clearDisplay();
+    display.fillDisplayBuffer(PET_BLACK);
+    display.refresh();
+
+    display.setRotation(DISP_ROTATION);
+	
+    pinMode(PIN_BUTTON_A, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_B, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_C, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_P, INPUT_PULLUP);
+
+    pinMode(PIN_UP, INPUT_PULLUP);
+    pinMode(PIN_LEFT, INPUT_PULLUP);
+    pinMode(PIN_DOWN, INPUT_PULLUP);
+    pinMode(PIN_RIGHT, INPUT_PULLUP);
+
+    pinMode(PIN_BEEPER, OUTPUT);
+    pinMode(PIN_VBAT, INPUT);
+
+    // LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+    // LowPower.attachInterruptWakeup(PIN_BUTTON_A, buttonWakeupCallback, FALLING);
+    // LowPower.attachInterruptWakeup(PIN_BUTTON_B, buttonWakeupCallback, FALLING);
+    // LowPower.attachInterruptWakeup(PIN_BUTTON_C, buttonWakeupCallback, FALLING);
+
+    buttonWakeup = false;
+    nextSleepTime = 40000;
+
+    currentState = new MenuState();
+
+    tone(PIN_BEEPER, NOTE_C5, 250);
+
+    flash.begin(possible_devices);
+
+    pinPeripheral(FLASH_MISO, PIO_SERCOM);
+    pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
+    pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
+    pinPeripheral(FLASH_CS, PIO_DIGITAL);
+
+    // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
+    usb_msc.setID("Adafruit", "External Flash", "1.0");
+  
+    // Set callback
+    usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
+    usb_msc.setReadyCallback(msc_ready_cb);
+  
+    // Set disk size, block size should be 512 regardless of spi flash page size
+    usb_msc.setCapacity(flash.pageSize()*flash.numPages()/512, 512);
+  
+    // MSC is ready for read/write
+    usb_msc.setUnitReady(true);
+    
+    usb_msc.begin();
+  
+    // Init file system on the flash
+    g::g_fatfs.begin(&flash);
+
+
+    Serial.print("JEDEC ID: "); Serial.println(flash.getJEDECID(), HEX);
+    Serial.print("Flash size: "); Serial.println(flash.size());
+
+    USBDevice.detach();
+    delay(500);
+    USBDevice.attach();
+    changed = true; // to print contents initially
+
+    g::g_cache = new GraphicCache();
+    g::g_cache->LoadGraphic("battery");
+}
+
+uint32_t sleepTicks = 0;
+uint16_t frameInputState = 0;
+uint32_t currentTimeMs = 0;
+uint32_t frameTimeMs = 0;
+uint32_t prevFrameMs = 0;
+
+uint32_t droppedFrames = 0;
+
+bool dirtyFrameBuffer = false;
+void loop(void)
+{
+    //// UPDATE ////
+    frameInputState |= readButtons();
+
+    currentTimeMs = millis();
+
+    if (frameInputState)
+    {
+        nextSleepTime = currentTimeMs + 60000;
+    }
+
+    //// DRAW ////
+    frameTimeMs = (currentTimeMs - prevFrameMs);
+    if (frameTimeMs > k_frameSleepTimeMs)
+    {
+        prevFrameMs = currentTimeMs;
+
+        GameState *nextState = currentState->update(frameInputState, k_tickTime);
+
+        if (nextState != currentState)
+        {
+            delete currentState;
+            currentState = nextState;
+        }
+
+        if (!display.isFrameLocked())
+        {
+            if (currentState->redraw)
+            {
+                display.fillDisplayBuffer();
+                currentState->draw(&display);
+                // drawOverlay(frameInputState);
+                // dirtyFrameBuffer = true;
+            }
+			
+			drawOverlay(frameInputState);
+			dirtyFrameBuffer = true;
+
+            if (dirtyFrameBuffer)
+            {
+                dirtyFrameBuffer = false;
+                display.refresh();
+            }
+        }
+		else if(currentState->redraw)
+		{
+			droppedFrames++;
+		}
+
+        frameInputState = 0;
+    }
+
+    // SLEEP ////
+    /*
+    if (currentTimeMs > nextSleepTime)
+    {
+        display.sync();
+
+        // LowPower.deepSleep(k_sleepTime);
+        buttonWakeup = false;
+
+        if (!buttonWakeup)
+        {
+            sleepTicks++;
+        }
+
+        //// SLEEP-BURN-IN-REFRESH ////
+        // every 120 * k_sleepTime refresh screen
+        // display must be refreshed every 2 hours to avoid pixel burn-in
+        if (sleepTicks >= 110)
+        {
+            sleepTicks = 0;
+            display.fillDisplayBuffer();
+            display.refresh();
+            display.sync();
+
+            // force redraw screen since it was cleared
+            currentState->redraw = true;
+        }
+
+        //// SLEEP-UPDATE ////
+        GameState *nextState = currentState->update(frameInputState, 1);
+        if (nextState != currentState)
+        {
+            delete currentState;
+            currentState = nextState;
+        }
+		currentState->redraw = true;
+		
+        //// SLEEP-DRAW ////
+        if (!display.isFrameLocked())
+        {
+            if (currentState->redraw)
+            {
+                display.fillDisplayBuffer();
+                currentState->draw(&display);
+                drawOverlay(frameInputState);
+                dirtyFrameBuffer = true;
+            }
+
+            if (dirtyFrameBuffer)
+            {
+                dirtyFrameBuffer = false;
+                display.refresh();
+            }
+        }
+        display.sync();
+    }
+    */
+}
+
+uint16_t readButtons()
+{
+    uint16_t inputState = 0;
+    if (!digitalRead(PIN_BUTTON_A))
+    {
+        inputState |= BUTTON_A;
+    }
+    if (!digitalRead(PIN_BUTTON_B))
+    {
+        inputState |= BUTTON_B;
+    }
+    if (!digitalRead(PIN_BUTTON_P))
+    {
+        inputState |= BUTTON_P;
+    }
+    if (!digitalRead(PIN_BUTTON_C))
+    {
+        inputState |= BUTTON_C;
+    }
+    if (!digitalRead(PIN_UP))
+    {
+        inputState |= UP;
+    }
+    if (!digitalRead(PIN_LEFT))
+    {
+        inputState |= LEFT;
+    }
+    if (!digitalRead(PIN_DOWN))
+    {
+        inputState |= DOWN;
+    }
+    if (!digitalRead(PIN_RIGHT))
+    {
+        inputState |= RIGHT;
+    }
+
+    return inputState;
+}
+
+void drawOverlay(uint16_t inputState)
+{
+    uint32_t elapsedTimeSeconds = currentTimeMs / 1000.0;
+    // uint32_t hours = (elapsedTimeSeconds / 60 / 60);
+    uint32_t minutes = (elapsedTimeSeconds / 60);
+    uint32_t seconds = (elapsedTimeSeconds % 60);
+
+    // text display tests
+    display.setCursor(0, 0);
+    display.setTextColor(PET_WHITE, PET_BLACK); // inverted text
+    display.fillRect(0, 0, 64, 8, PET_BLACK);
+
+    // char buf[PRINTF_BUF];
+    display.printf("%02u:%02u ", minutes, seconds);
+    if (nextSleepTime > millis())
+    {
+		// display.printf("%02u %02u", frameTimeMs, droppedFrames);
+		// display.printf(" %02u\n", (nextSleepTime - millis()) / 1000);
+    }
+    else
+    {
+		display.printf("Zz\n");
+    }
+
+    int intBat = Util::batteryLevel();
+    //display.printf(" %03u\n", intBat);
+
+    // 1.5*2 alk
+    // 1.4*2 nimh
+    // -0.2 shottky
+    // 260-280 full charge
+    int batFrame = 0;
+
+    if (intBat > 260)
+    {
+        batFrame = 0;
+    }
+    else if (intBat > 240)
+    {
+        batFrame = 1;
+    }
+    else if (intBat > 220)
+    {
+        batFrame = 2;
+    }
+    else if (intBat > 200)
+    {
+        batFrame = 3;
+    }
+    else
+    {
+        batFrame = 4;
+    }
+
+    display.drawFrame(PETPIC(battery), 48, 0, batFrame);
+
+    // display.drawFrame("battery", 48, 0, batFrame);
+}
+
+void buttonWakeupCallback()
+{
+    nextSleepTime = millis() + 60000;
+    buttonWakeup = true;
+}
+
+// Callback invoked when received READ10 command.
+// Copy disk's data to buffer (up to bufsize) and 
+// return number of copied bytes (must be multiple of block size) 
+int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
+{
+    // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+    // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+    return flash.readBlocks(lba, (uint8_t*) buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when received WRITE10 command.
+// Process data in buffer to disk's storage and 
+// return number of written bytes (must be multiple of block size)
+int32_t msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
+{
+    // check_uf2_handover(buffer, bufsize, 4, 5, tag);
+    // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+    // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+    return flash.writeBlocks(lba, buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when WRITE10 command is completed (status received and accepted by host).
+// used to flush any pending cache.
+void msc_flush_cb (void)
+{
+    // sync with flash
+    flash.syncBlocks();
+
+    // clear file system's cache to force refresh
+    g::g_fatfs.cacheClear();
+
+    changed = true;
+}
+
+bool msc_ready_cb(void)
+{
+    // usbConnectedTime = millis();
+    // nextSleepTime = usbConnectedTime + 60000;
+    return true;
+}

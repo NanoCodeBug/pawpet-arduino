@@ -1,0 +1,9 @@
+# Executables
+*.exe
+*.out
+*.app
+
+/.vscode
+/build*
+
+arduino-cli*
