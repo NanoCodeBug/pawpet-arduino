@@ -191,13 +191,13 @@ public:
 		id = 3;
 		prevInput = 0;
 
-		g::g_cache->LoadGraphic("testface");
-		g::g_cache->GetGraphic("testface", &testMeta, &testImage);
+		// g::g_cache->LoadGraphic("testface");
+		// g::g_cache->GetGraphic("testface", &testMeta, &testImage);
 	}
 	uint16_t refreshTime = 0;
 
-	uint32_t* testImage;
-	uint16_t* testMeta;
+	// uint32_t* testImage;
+	// uint16_t* testMeta;
 
 	GameState *update(uint32_t input, uint32_t tick) override
 	{
@@ -222,10 +222,9 @@ public:
 		disp->setTextColor(PET_BLACK);
 
 		disp->printf("%02x ", prevInput);
-
 		// disp->drawFrame(PETPIC(pet_sit), 0, 0, 3);
 		// disp->drawImage(testImage, testMeta, 20, 30);
-		disp->drawImage(testImage, testMeta, 0, 30 );
+		// disp->drawImage(testImage, testMeta, 0, 30 );
 
 		// disp->printf("t:%02u ", sleepTicks);
 
@@ -237,6 +236,7 @@ public:
 		disp->println();
 		int32_t ramUsage = ((int32_t)RAM_SIZE - Util::FreeRam()) * 100 / RAM_SIZE;
 		disp->printf("r:%02u%% %3uv\n", ramUsage, Util::batteryLevel());
+		disp->println("ver: 1.2\n");
 	}
 };
 
@@ -249,13 +249,13 @@ public:
 		id = 3;
 		prevInput = 0;
 
-		g::g_cache->LoadGraphic("testface");
-		g::g_cache->GetGraphic("testface", &testMeta, &testImage);
+		// g::g_cache->LoadGraphic("testface");
+		// g::g_cache->GetGraphic("testface", &testMeta, &testImage);
 	}
 	uint16_t refreshTime = 0;
 
-	uint32_t* testImage;
-	uint16_t* testMeta;
+	// uint32_t* testImage;
+	// uint16_t* testMeta;
 
 	GameState *update(uint32_t input, uint32_t tick) override
 	{

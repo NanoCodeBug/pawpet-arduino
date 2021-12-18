@@ -1,0 +1,115 @@
+Connected to COM4! Press CTRL-C to exit.
+JEDEC ID: C22815
+Flash size: 2097152
+Valid FS Found
+--------------------------- SCS
+CPUID:  REV=0x1 PARTNO=0xC60 ARCH=0xC VAR=0x0 IMPL=0x41
+SysTick:  ENABLE TICKINT clksource=CPU RELOAD=47999 TENMS=79999 SKEW
+irq pri0:  PM SYSCTRL WDT RTC EIC NVMCTRL USB EVSYS SERCOM0 SERCOM1 SERCOM3 SERCOM5 TCC0 TCC1 TCC2 TC3 TC4 TC6 TC7 ADC AC DAC PTC I2S
+irq pri1:  TC5
+irq pri2:
+irq pri3:  DMAC SERCOM2 SERCOM4
+--------------------------- SYSCTRL
+OSCULP32K:  CALIB=0xE
+OSC8M:  ENABLE presc=1 CALIB=0x834 frange=6-8MHz
+XOSC32K:  ENABLE XTALEN EN32K STARTUP=0x6
+DFLL:  ENABLE mode=closed-loop QLDIS WAITLOCK MUL=1465
+BOD33:  ENABLE action=RESET psel=2 LEVEL=0x7
+VREG:
+VREF:  CALIB=0x68
+--------------------------- GCLK
+GEN00:  GENEN DFLL48M IDC
+GEN01:  GENEN XOSC32K
+GEN02:  GENEN OSCULP32K
+GEN03:  GENEN OSC8M
+GEN06:  GENEN OSCULP32K RUNSTDBY
+GCLK_MAIN:  GEN00 (always)
+GCLK_DFLL48M_REF:  CLKEN GEN01
+GCLK_EIC:  CLKEN GEN06
+GCLK_USB:  CLKEN GEN00
+GCLK_SERCOM2_CORE:  CLKEN GEN00
+GCLK_SERCOM4_CORE:  CLKEN GEN00
+GCLK_TC4_TC5:  CLKEN GEN00
+GCLK_ADC:  CLKEN GEN00
+GCLK_DAC:  CLKEN GEN00
+--------------------------- DMAC
+CTRL:  DMAENABLE LVLEN0 LVLEN1 LVLEN2 LVLEN3
+CRCCTRL:  CRCBEATSIZE=0x0 CRCPOLY=0x0 CRCSRC=0x0
+QOSCTRL:  wrbqos=LOW fqos=LOW dqos=LOW
+PRICTRL0:  lvl0: lvl1: lvl2: lvl3:
+--------------------------- EVSYS
+CTRL:
+--------------------------- PAC
+PAC1:  DSU
+PAC2:
+--------------------------- PM
+SLEEP:  idle=CPU
+CPUSEL:  /1
+APBASEL:  /1
+APBBSEL:  /1
+APBCSEL:  /1
+AHBMASK:  CLK_HPBA_AHB CLK_HPBB_AHB CLK_HPBC_AHB CLK_DSU_AHB CLK_NVMCTRL_AHB CLK_DMAC_AHB CLK_USB_AHB
+APBAMASK:  CLK_PAC0_APB CLK_PM_APB CLK_SYSCTRL_APB CLK_GCLK_APB CLK_WDT_APB CLK_RTC_APB CLK_EIC_APB
+APBBMASK:  CLK_PAC1_APB CLK_DSU_APB CLK_NVMCTRL_APB CLK_PORT_APB CLK_DMAC_APB CLK_USB_APB
+APBCMASK:  CLK_SERCOM0_APB CLK_SERCOM1_APB CLK_SERCOM2_APB CLK_SERCOM3_APB CLK_SERCOM4_APB CLK_SERCOM5_APB CLK_TCC0_APB CLK_TCC1_APB CLK_TCC2_APB CLK_TC3_APB CLK_TC4_APB CLK_TC5_APB CLK_TC6_APB CLK_TC7_APB CLK_ADC_APB CLK_DAC_APB
+--------------------------- EIC
+EXTINT00:  sense=FALL WAKEUP
+--------------------------- NVMCTRL
+CTRLB:  RWS=1 MANW sleepprm=DISABLED readmode=NO_MISS_PENALTY
+PARAM:  NVMP=4096 psz=64bytes
+LOCK:  1111111111111111
+user row:  bootprot=8k eeprom_size=0 region_locks=1111111111111111
+software calibration:  ADC_LINEARITY=0x10 ADC_BIAS=0x7 OSC32K_CAL=0x18 USB_TRANSN=0xB USB_TRANSP=0x1A USB_TRIM=0x7 DFLL48M_COARSE_CAL=0x32
+serial # 0xCBC760A1 0x5053334D 0x332E3120 0xFF132224
+--------------------------- PORT A
+PA06:  output INEN
+PA07:  input INEN
+PA08:  pmux=SERCOM2:0(spi:mosi)
+PA09:  pmux=SERCOM2:1(spi:sck)
+PA12:  pmux=SERCOM4:0(spi:miso)
+PA13:  output INEN
+PA14:  pmux=SERCOM2:2(spi:miso)
+PA15:  input INEN pull=UP
+PA16:  pmux=EIC:0 input INEN pull=UP
+PA17:  input INEN pull=UP
+PA18:  input INEN pull=UP
+PA19:  input INEN pull=UP
+PA20:  input INEN pull=UP
+PA21:  input INEN pull=UP
+PA24:  pmux=USB:DN
+PA25:  pmux=USB:DP
+PA30:  pmux=SWCLK
+--------------------------- PORT B
+PB02:  input INEN pull=UP
+PB08:  output INEN
+PB10:  pmux=SERCOM4:2(spi:mosi)
+PB11:  pmux=SERCOM4:3(spi:sck)
+--------------------------- ARDUINO PINS
+D2:  pmux=SERCOM2:2(spi:miso)
+D3:  pmux=SERCOM2:1(spi:sck)
+D4:  pmux=SERCOM2:0(spi:mosi)
+D5:  input INEN pull=UP
+D6:  input INEN pull=UP
+D7:  input INEN pull=UP
+D8:  output INEN
+D9:  input INEN
+D10:  input INEN pull=UP
+D11:  pmux=EIC:0 input INEN pull=UP
+D12:  input INEN pull=UP
+D13:  input INEN pull=UP
+A1:  output INEN
+A5:  input INEN pull=UP
+D22:  pmux=SERCOM4:0(spi:miso)
+D23:  pmux=SERCOM4:2(spi:mosi)
+D24:  pmux=SERCOM4:3(spi:sck)
+    BANK0:  eptype=--disabled--
+    BANK1:  eptype=--disabled--
+ENDPOINT5:
+    BANK0:  eptype=--disabled--
+    BANK1:  eptype=--disabled--
+ENDPOINT6:
+    BANK0:  eptype=--disabled--
+    BANK1:  eptype=--disabled--
+ENDPOINT7:
+    BANK0:  eptype=--disabled--
+    BANK1:  eptype=--disabled--

@@ -32,7 +32,6 @@ struct ImageMeta
 
 #define UF2_DEFINE_HANDOVER 1
 #define SAMD21 1
-#include "uf2format.h"
 //#include <Adafruit_SleepyDog.h>
 
 #include "graphic_manager.h"

@@ -2,7 +2,7 @@
 #define global_h
 #pragma once
 
-constexpr uint32_t k_sleepTime = 1 * 60 * 1000; // 1 minute sleep
+constexpr uint32_t k_sleepTimeMs = 1 * 60 * 1000; // 1 minute sleep
 constexpr uint32_t k_frameSleepTimeMs = 33;               // 33, 30 fps // 50 ms for 20 fps
 constexpr uint32_t k_tickTime = 3; //k_frameSleepTimeMs / 10;
 

@@ -1,6 +1,6 @@
 #include "src/common.h"
 #include "RTCZero.h"
-// #include "src/lib/ArduinoLowPower.h"
+#include "src/lib/ArduinoLowPower.h"
 #include "src/gamestate.h"
 #include "wiring_private.h"
 #include "src/lib/PawPet_FlashTransport.h"
@@ -23,7 +23,10 @@ uint16_t readButtons();
 void drawOverlay(uint16_t inputState);
 
 // USB Mass Storage object
-Adafruit_USBD_MSC usb_msc;
+// Adafruit_USBD_MSC usb_msc;
+#include "src/lib/ff.h"
+#include "src/lib/diskio.h"
+#include <ZeroRegs.h>
 
 // Set to true when PC write to flash
 bool changed;
@@ -33,11 +36,11 @@ static char buffer[80];
 
 void setup(void)
 {
-    // Serial.begin(9600);
+    Serial.begin(9600);
     
-    // while (!Serial) {
-    //     ; // wait for serial port to connect. 
-    // }
+    while (!Serial) {
+        ; // wait for serial port to connect. 
+    }
 
     display.begin();
     flashSPI.begin();
@@ -79,7 +82,7 @@ void setup(void)
     pinMode(PIN_BEEPER, OUTPUT);
     pinMode(PIN_VBAT, INPUT);
 
-    // LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+    LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
     // LowPower.attachInterruptWakeup(PIN_BUTTON_A, buttonWakeupCallback, FALLING);
     // LowPower.attachInterruptWakeup(PIN_BUTTON_B, buttonWakeupCallback, FALLING);
     // LowPower.attachInterruptWakeup(PIN_BUTTON_C, buttonWakeupCallback, FALLING);
@@ -91,42 +94,106 @@ void setup(void)
 
     tone(PIN_BEEPER, NOTE_C5, 250);
 
-    flash.begin(possible_devices);
-
+    bool flashFound = flash.begin(possible_devices);
     pinPeripheral(FLASH_MISO, PIO_SERCOM);
     pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
     pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
     pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
-    usb_msc.setID("Adafruit", "External Flash", "1.0");
+    // usb_msc.setID("Adafruit", "External Flash", "1.0");
   
-    // Set callback
-    usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
-    usb_msc.setReadyCallback(msc_ready_cb);
+    // // Set callback
+    // usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
+    // usb_msc.setReadyCallback(msc_ready_cb);
   
-    // Set disk size, block size should be 512 regardless of spi flash page size
-    usb_msc.setCapacity(flash.pageSize()*flash.numPages()/512, 512);
+    // // Set disk size, block size should be 512 regardless of spi flash page size
+    // usb_msc.setCapacity(flash.pageSize()*flash.numPages()/512, 512);
   
-    // MSC is ready for read/write
-    usb_msc.setUnitReady(true);
+    // // MSC is ready for read/write
+    // usb_msc.setUnitReady(true);
     
-    usb_msc.begin();
-  
+    // usb_msc.begin();
+
+    if(flashFound)
+    {
+        Serial.print("JEDEC ID: "); Serial.println(flash.getJEDECID(), HEX);
+        Serial.print("Flash size: "); Serial.println(flash.size());
+    }
+
     // Init file system on the flash
-    g::g_fatfs.begin(&flash);
+    // FORMAT FS - should only need to be done once
+    if(!g::g_fatfs.begin(&flash) && flashFound)
+    {
+        Serial.println("FatFS not found");
 
+        FATFS elmchamFatfs;
+        uint8_t workbuf[4096]; // Working buffer for f_fdisk function.
+        Serial.println("Creating and formatting FAT filesystem (this takes ~60 seconds)...");
 
-    Serial.print("JEDEC ID: "); Serial.println(flash.getJEDECID(), HEX);
-    Serial.print("Flash size: "); Serial.println(flash.size());
+        // Make filesystem.
+        FRESULT r = f_mkfs("", FM_FAT | FM_SFD, 0, workbuf, sizeof(workbuf));
+        if (r != FR_OK) {
+            Serial.print("Error, f_mkfs failed with error code: "); Serial.println(r, DEC);
+            while(1) yield();
+        }
 
-    USBDevice.detach();
-    delay(500);
-    USBDevice.attach();
+        // mount to set disk label
+        r = f_mount(&elmchamFatfs, "0:", 1);
+        if (r != FR_OK) {
+            Serial.print("Error, f_mount failed with error code: "); Serial.println(r, DEC);
+            while(1) yield();
+        }
+
+        // Setting label
+        Serial.println("Setting disk label to: PAWPET_INT");
+        r = f_setlabel("PAWPET_INT");
+        if (r != FR_OK) {
+            Serial.print("Error, f_setlabel failed with error code: "); Serial.println(r, DEC);
+            while(1) yield();
+        }
+
+        // unmount
+        f_unmount("0:");
+
+        // sync to make sure all data is written to flash
+        flash.syncBlocks();
+        
+        Serial.println("Formatted flash!");
+    }
+    else if(flashFound)
+    {
+        // try again
+        if(g::g_fatfs.begin(&flash))
+        {
+            Serial.println("Valid FS Found");
+        }
+        else
+        {
+            Serial.println("Failed to create FS");
+        }
+    }
+    else
+    {
+        Serial.println("Flash chip not found");
+    }
+
+    // USBDevice.detach();
+    // delay(500);
+    // USBDevice.attach();
     changed = true; // to print contents initially
 
     g::g_cache = new GraphicCache();
-    g::g_cache->LoadGraphic("battery");
+    // g::g_cache->LoadGraphic("battery");
+
+    
+
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
+    GCLK->CLKCTRL.bit.CLKEN = 0;
+    while (GCLK->STATUS.bit.SYNCBUSY);
+
+    ZeroRegOptions opts = { Serial, false };
+    printZeroRegs(opts);
 }
 
 uint32_t sleepTicks = 0;
@@ -191,13 +258,13 @@ void loop(void)
         frameInputState = 0;
     }
 
-    // SLEEP ////
-    /*
+    //// SLEEP ////
     if (currentTimeMs > nextSleepTime)
     {
         display.sync();
 
-        // LowPower.deepSleep(k_sleepTime);
+        flashTransport.runCommand(0xB9); // deep sleep
+        LowPower.deepSleep(k_sleepTimeMs);
         buttonWakeup = false;
 
         if (!buttonWakeup)
@@ -206,7 +273,7 @@ void loop(void)
         }
 
         //// SLEEP-BURN-IN-REFRESH ////
-        // every 120 * k_sleepTime refresh screen
+        // every 120 * k_sleepTimeMs refresh screen
         // display must be refreshed every 2 hours to avoid pixel burn-in
         if (sleepTicks >= 110)
         {
@@ -247,7 +314,7 @@ void loop(void)
         }
         display.sync();
     }
-    */
+    
 }
 
 uint16_t readButtons()
@@ -393,4 +460,69 @@ bool msc_ready_cb(void)
     // usbConnectedTime = millis();
     // nextSleepTime = usbConnectedTime + 60000;
     return true;
+}
+
+DSTATUS disk_status ( BYTE pdrv )
+{
+  (void) pdrv;
+	return 0;
+}
+
+DSTATUS disk_initialize ( BYTE pdrv )
+{
+  (void) pdrv;
+	return 0;
+}
+
+DRESULT disk_read (
+	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
+	BYTE *buff,		/* Data buffer to store read data */
+	DWORD sector,	/* Start sector in LBA */
+	UINT count		/* Number of sectors to read */
+)
+{
+  (void) pdrv;
+	return flash.readBlocks(sector, buff, count) ? RES_OK : RES_ERROR;
+}
+
+DRESULT disk_write (
+	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
+	const BYTE *buff,	/* Data to be written */
+	DWORD sector,		/* Start sector in LBA */
+	UINT count			/* Number of sectors to write */
+)
+{
+  (void) pdrv;
+  return flash.writeBlocks(sector, buff, count) ? RES_OK : RES_ERROR;
+}
+
+DRESULT disk_ioctl (
+	BYTE pdrv,		/* Physical drive nmuber (0..) */
+	BYTE cmd,		/* Control code */
+	void *buff		/* Buffer to send/receive control data */
+)
+{
+  (void) pdrv;
+
+  switch ( cmd )
+  {
+    case CTRL_SYNC:
+      flash.syncBlocks();
+      return RES_OK;
+
+    case GET_SECTOR_COUNT:
+      *((DWORD*) buff) = flash.size()/512;
+      return RES_OK;
+
+    case GET_SECTOR_SIZE:
+      *((WORD*) buff) = 512;
+      return RES_OK;
+
+    case GET_BLOCK_SIZE:
+      *((DWORD*) buff) = 8;    // erase block size in units of sector size
+      return RES_OK;
+
+    default:
+      return RES_PARERR;
+  }
 }

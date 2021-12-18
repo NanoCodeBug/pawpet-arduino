@@ -112,9 +112,7 @@ bool PawPet_FlashTransport_SPI::readMemory(uint32_t addr, uint8_t *data,
   _spi->transfer(cmd_with_addr, cmd_len);
 
   // Use SPI DMA if available for best performance
-#if defined(ARDUINO_NRF52_ADAFRUIT) && defined(NRF52840_XXAA)
-  _spi->transfer(NULL, data, len);
-#elif defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
+#if defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
   _spi->transfer(NULL, data, len, true);
 #else
   _spi->transfer(data, len);
@@ -136,9 +134,7 @@ bool PawPet_FlashTransport_SPI::writeMemory(uint32_t addr,
   _spi->transfer(cmd_with_addr, 1 + _addr_len);
 
   // Use SPI DMA if available for best performance
-#if defined(ARDUINO_NRF52_ADAFRUIT) && defined(NRF52840_XXAA)
-  _spi->transfer(data, NULL, len);
-#elif defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
+#if defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
   _spi->transfer(data, NULL, len, true);
 #else
   while (len--) {

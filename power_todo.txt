@@ -1,0 +1,88 @@
+- disable peripheral
+- set clock source to unused disabled clock
+- say GCLK_CLKCTRL_GEN_GCLK7?
+
+Power save notes:
+
+disable:
+sercom 0
+sercom 1
+sercom 3
+sercom 5
+- all of these are unused
+
+DAC
+- unused
+
+all TC excluding TC5?
+- unused
+
+GEN02 clock is turned on but not used
+GEN03 clock is turned on but not used
+
+
+
+
+
+
+
+
+input pullup unused ports?
+
+A0 PA02
+AREF PA03
+A4 PA05
+D1 PA10
+D0 PA11
+MISO PA12
+
+SDA PA22
+SCL PA23
+
+TX PA27
+USB_HOST_EN PA28
+
+RXLED PB03
+A2 PB09
+
+PB22 TXD
+PB23 RXD
+
+(not normally used outside debugging)
+SWCLK PA30
+SWDIO PA31
+
+
+
+
+
+
+
+
+ was able to achieve a quiescent draw of 86.2 uA after commenting out the above code with a Feather M0 Proto. This is an expected value given the AP2112's regulator draw of ~50 uA and the 100/100 kOhm resistive voltage divider draw of ~20 uA. After replacing the AP2112 with a MIC5225 and slightly changing the voltage divider to 330/100 kOhm, I was able to reach ~26 uA. I love Adafruit products but they certainly do not emphasize low-power operation.
+
+
+ - add ideal diode... n/a 
+
+ transistor for voltage divider
+
+
+ use transistors to disconnect
+ - flash from power, or does enable pin handle this well? seems to depend on chip
+ - voltage divider from power
+
+ transistors to control
+ - battery to display
+ - voltage regulator to display
+
+
+was the voltage actually the issue?
+- thought power loss was from voltage being below 3.3v, but seems that its actually the voltage divider and flash chip drawing more than expected
+
+- flashing on screen was a result of the polizarization flip
+which does not seem to be a huge issue? can be disabled below certain vmon or only triggered during sleep states anyways
+
+
+TODO:
+- get dc power supply to test behavior at low voltage levels
+- voltage cut off circuit? disconnect below 2v?
