@@ -1,7 +1,4 @@
 Connected to COM4! Press CTRL-C to exit.
-JEDEC ID: C22815
-Flash size: 2097152
-Valid FS Found
 --------------------------- SCS
 CPUID:  REV=0x1 PARTNO=0xC60 ARCH=0xC VAR=0x0 IMPL=0x41
 SysTick:  ENABLE TICKINT clksource=CPU RELOAD=47999 TENMS=79999 SKEW
@@ -20,18 +17,14 @@ VREF:  CALIB=0x68
 --------------------------- GCLK
 GEN00:  GENEN DFLL48M IDC
 GEN01:  GENEN XOSC32K
-GEN02:  GENEN OSCULP32K
-GEN03:  GENEN OSC8M
-GEN06:  GENEN OSCULP32K RUNSTDBY
+GEN02:  GENEN OSCULP32K RUNSTDBY
 GCLK_MAIN:  GEN00 (always)
-GCLK_DFLL48M_REF:  CLKEN GEN01
-GCLK_EIC:  CLKEN GEN06
+GCLK_EIC:  CLKEN GEN02
 GCLK_USB:  CLKEN GEN00
 GCLK_SERCOM2_CORE:  CLKEN GEN00
 GCLK_SERCOM4_CORE:  CLKEN GEN00
 GCLK_TC4_TC5:  CLKEN GEN00
 GCLK_ADC:  CLKEN GEN00
-GCLK_DAC:  CLKEN GEN00
 --------------------------- DMAC
 CTRL:  DMAENABLE LVLEN0 LVLEN1 LVLEN2 LVLEN3
 CRCCTRL:  CRCBEATSIZE=0x0 CRCPOLY=0x0 CRCSRC=0x0
@@ -102,6 +95,46 @@ A5:  input INEN pull=UP
 D22:  pmux=SERCOM4:0(spi:miso)
 D23:  pmux=SERCOM4:2(spi:mosi)
 D24:  pmux=SERCOM4:3(spi:sck)
+--------------------------- RTC MODE2
+CTRL:  ENABLE PRESCALER=0xA(GCLK_RTC/1024)
+EVCTRL:
+FREQCORR:  +0
+ALARM0:  00-01-01 14:27:06
+MASK0:  HH:MM:SS
+--------------------------- SERCOM2 SPI master
+CTRLA:  ENABLE miso=PAD2 mosi=PAD0 sck=PAD1 form=SPI cpha=LEADING cpol=LOW dord=MSB
+CTRLB:  chsize=8bit amode=MASK RXEN
+BAUD:  0x1
+--------------------------- SERCOM4 SPI master
+CTRLA:  ENABLE miso=PAD0 mosi=PAD2 sck=PAD3 form=SPI cpha=LEADING cpol=LOW dord=LSB
+CTRLB:  chsize=8bit amode=MASK RXEN
+BAUD:  0xB
+--------------------------- TC5 COUNT16
+CTRLA:  ENABLE wavegen=MFRQ prescaler=DIV2 prescsync=GCLK
+CTRLB:  dir=UP
+CTRLC:
+EVCTRL:  evact=OFF
+CC0:  40815
+CC1:  0
+--------------------------- USB
+CTRLA:  ENABLE RUNSTDBY mode=DEVICE
+QOSCTRL:  cqos=HIGH dqos=HIGH
+CTRLB:  spdconf=FS LPMHDSK=0x0
+DADD:  0x6 ADDEN
+PADCAL:  TRANSP=0x1D TRANSN=0x5 TRIM=0x3
+ENDPOINT0:
+    BANK0:  eptype=CTRL-out ADDR=0x20001338 size=64byte EXTREG=0x0
+    BANK1:  eptype=CTRL-in ADDR=0x200012F8 size=64byte
+ENDPOINT1:
+    BANK0:  eptype=BULK-out ADDR=0x20000E2C size=64byte EXTREG=0x0
+    BANK1:  eptype=INT-in ADDR=0x0 size=8byte
+ENDPOINT2:
+    BANK0:  eptype=BULK-out ADDR=0x20001138 size=64byte EXTREG=0x0
+    BANK1:  eptype=BULK-in ADDR=0x20000E6C size=64byte
+ENDPOINT3:
+    BANK0:  eptype=--disabled--
+    BANK1:  eptype=BULK-in ADDR=0x20001158 size=64byte
+ENDPOINT4:
     BANK0:  eptype=--disabled--
     BANK1:  eptype=--disabled--
 ENDPOINT5:

@@ -18,7 +18,7 @@
 // try to figure out revision naively
 
 #define M0_VER_5 1
-
+#define SOFT_VERSION "1.2"
 
 #define DISP_WIDTH 128
 #define DISP_HEIGHT 128
@@ -165,19 +165,7 @@
     .single_status_byte = true, \
   }
 
-#define MX25V1606F                                                             \
-  {                                                                            \
-    .total_size = (1 << 21), /* 2 MB / 16 Mb */                                \
-    .start_up_time_us = 800, .manufacturer_id = 0xc2,                          \
-    .memory_type = 0x20, .capacity = 0x15, .max_clock_speed_mhz = 33 /*50*/,   \
-    .quad_enable_bit_mask = 0x00, .has_sector_protection = false,              \
-    .supports_fast_read = true, .supports_qspi = false,                        \
-    .supports_qspi_writes = false, .write_status_register_split = false,       \
-    .single_status_byte = true, \
-  }
-
 static const SPIFlash_Device_t possible_devices[] = {
-  MX25R1635F,
-  MX25V1606F
+  MX25R1635F
 };
 

@@ -80,7 +80,7 @@ void ArduinoLowPowerClass::attachInterruptWakeup(uint32_t pin, voidFuncPtr callb
 	GCLK->CLKCTRL.bit.CLKEN = 0; //disable GCLK module
 	while (GCLK->STATUS.bit.SYNCBUSY);
 
-	GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | GCLK_CLKCTRL_ID( GCM_EIC )) ;  //EIC clock switched on GCLK6
+	GCLK->CLKCTRL.reg = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | GCLK_CLKCTRL_ID( GCM_EIC )) ;  //EIC clock switched on GCLK2
 	while (GCLK->STATUS.bit.SYNCBUSY);
 
 	GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(2));  //source for GCLK2 is OSCULP32K

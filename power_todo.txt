@@ -17,9 +17,8 @@ DAC
 all TC excluding TC5?
 - unused
 
-GEN02 clock is turned on but not used
-GEN03 clock is turned on but not used
-
+remapped gclk6 to gclk2 
+disable glck3 and disregistered clock source
 
 
 

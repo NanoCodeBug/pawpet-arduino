@@ -220,23 +220,11 @@ public:
 	{
 		disp->setCursor(0, 8);
 		disp->setTextColor(PET_BLACK);
-
-		disp->printf("%02x ", prevInput);
-		// disp->drawFrame(PETPIC(pet_sit), 0, 0, 3);
-		// disp->drawImage(testImage, testMeta, 20, 30);
-		// disp->drawImage(testImage, testMeta, 0, 30 );
-
-		// disp->printf("t:%02u ", sleepTicks);
-
-		// if (nextSleepTime > millis())
-		// {
-		//     disp->printf("f:%02u", (nextSleepTime - millis())/1000);
-		// }
-
-		disp->println();
+		
 		int32_t ramUsage = ((int32_t)RAM_SIZE - Util::FreeRam()) * 100 / RAM_SIZE;
-		disp->printf("r:%02u%% %3uv\n", ramUsage, Util::batteryLevel());
-		disp->println("ver: 1.2\n");
+		disp->printf(" %02u%% %3uv\n", ramUsage, Util::batteryLevel());
+		disp->printf(" %uMB %s\n", g::stats.flashSize/1024/1024, g::stats.filesysFound ? "FAT" : "N/A");
+		disp->printf(" ver:%s\n", SOFT_VERSION);
 	}
 };
 

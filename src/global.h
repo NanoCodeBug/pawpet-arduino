@@ -10,6 +10,10 @@ namespace g
 {
 extern FatFileSystem g_fatfs;
 extern GraphicCache* g_cache;
+static struct {
+    uint32_t flashSize;
+    uint8_t filesysFound:1;
+} stats;
 }
 
 int32_t msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize);
