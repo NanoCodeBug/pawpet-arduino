@@ -291,7 +291,7 @@ def main():
 
             petGraphic["width"] = tileWidth
             petGraphic["height"] = tileHeight
-            petGraphic["tile_count"] = tileCount = int(image.width / tileWidth) * int(image.height / tileHeight)
+            petGraphic["tile_count"] = int(image.width / tileWidth) * int(image.height / tileHeight)
             petGraphic["map_width"] = mapWidth = int(image.width / tileWidth)
             petGraphic["map_height"] = mapHeight = int(image.height / tileHeight)
             petGraphic["name"] = m.group(1)
@@ -341,7 +341,7 @@ def main():
                 petGraphic["encoding"] = "span"
                 petGraphic["bytes"] = spanBytes
 
-        print(" -> span:{1}, pack:{2}".format(petGraphic["name"], len(spanBytes), len(packBytes)))
+        print("{0} -> span:{1}, pack:{2}".format(petGraphic["name"], len(spanBytes), len(packBytes)))
         totalBytes += writeCGraphic(f, petGraphic)
         writeCustomBmp(petGraphic, buildpath)
         

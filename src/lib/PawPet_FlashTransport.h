@@ -1,13 +1,19 @@
-
 #ifndef PawPet_FlashTransport_SPI_H_
 #define PawPet_FlashTransport_SPI_H_
+
+/**
+ * Fork of adafruit flash transport 
+ * only purpose is to remove _spi->begin() from begin()
+ * so that it stops resetting the sercom pin mappings
+ */
 
 #include "Arduino.h"
 #include "SPI.h"
 
 #include "Adafruit_FlashTransport.h"
 
-class PawPet_FlashTransport_SPI : public Adafruit_FlashTransport {
+class PawPet_FlashTransport_SPI : public Adafruit_FlashTransport
+{
 private:
   SPIClass *_spi;
   uint8_t _ss;
@@ -37,12 +43,14 @@ public:
 private:
   void fillAddress(uint8_t *buf, uint32_t addr);
 
-  void beginTransaction(uint32_t clock_hz) {
+  void beginTransaction(uint32_t clock_hz)
+  {
     _spi->beginTransaction(SPISettings(clock_hz, MSBFIRST, SPI_MODE0));
     digitalWrite(_ss, LOW);
   }
 
-  void endTransaction(void) {
+  void endTransaction(void)
+  {
     digitalWrite(_ss, HIGH);
     _spi->endTransaction();
   }

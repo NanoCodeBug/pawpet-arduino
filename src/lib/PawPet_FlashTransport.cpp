@@ -19,6 +19,7 @@ void PawPet_FlashTransport_SPI::begin(void) {
   pinMode(_ss, OUTPUT);
   digitalWrite(_ss, HIGH);
 
+  // removed _spi->begin()
 }
 
 void PawPet_FlashTransport_SPI::setClockSpeed(uint32_t write_hz,

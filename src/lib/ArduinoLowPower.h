@@ -1,6 +1,10 @@
 #ifndef _ARDUINO_LOW_POWER_H_
 #define _ARDUINO_LOW_POWER_H_
 
+/**
+ * fork of arduino low power to add additional m0 specific power saving optimizations
+ */
+
 #include <Arduino.h>
 #include "RTCZero.h"
 

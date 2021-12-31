@@ -1,4 +1,6 @@
 #pragma once
+#include "../common.h"
+#include "../global.h"
 
 /**
  * Maintain a graphic cache of N graphic objects totalling X bytes
@@ -13,7 +15,7 @@
 struct CacheEntry
 {
     char name[16];
-    uint32_t* data;
+    uint32_t *data;
     uint32_t data_size;
     ImageMeta meta;
 };
@@ -25,8 +27,8 @@ class GraphicCache
 
 public:
     GraphicCache();
-    
-	int32_t LoadGraphic(const char* name);
 
-    bool GetGraphic(const char* name, uint16_t** meta, uint32_t** data);
+    int32_t LoadGraphic(const char *name);
+
+    bool GetGraphic(const char *name, uint16_t **meta, uint32_t **data);
 };

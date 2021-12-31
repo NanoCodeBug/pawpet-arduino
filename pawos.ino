@@ -1,9 +1,25 @@
-#include "src/common.h"
-#include "RTCZero.h"
-#include "src/lib/ArduinoLowPower.h"
-#include "src/gamestate.h"
-#include "wiring_private.h"
+#include <Arduino.h>
+#include <WInterrupts.h>
+#include <wiring_private.h>
+#include <SPI.h>
+#include <Adafruit_TinyUSB.h>
+#include <Adafruit_SPIFlash.h>
+#include <FatLib/FatFileSystem.h>
+
 #include "src/lib/PawPet_FlashTransport.h"
+#include "src/lib/ArduinoLowPower.h"
+
+#include "src/config.h"
+#include "src/global.h"
+#include "src/common.h"
+#include "src/states/gamestate.h"
+
+// TODO: Move setup of all devices elsewhere
+// have the .ino to contain the core update loop only
+
+static const SPIFlash_Device_t possible_devices[] = {
+  MX25R1635F
+};
 
 SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 
@@ -20,15 +36,14 @@ volatile uint32_t nextSleepTime;
 
 void buttonWakeupCallback();
 uint16_t readButtons();
-void drawOverlay(uint16_t inputState);
+bool drawOverlay();
 
 // USB Mass Storage object
 Adafruit_USBD_MSC usb_msc;
-
-#ifdef FLASH_SETUP
-#include "src/lib/ff.h"
-#include "src/lib/diskio.h"
-#endif
+int32_t msc_read_cb(uint32_t lba, void *buffer, uint32_t bufsize);
+int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize, uint32_t tag);
+void msc_flush_cb(void);
+bool msc_ready_cb();
 
 #ifdef DEBUG
 #include <ZeroRegs.h>
@@ -44,10 +59,12 @@ void setup(void)
 {
     Serial.begin(9600);
 
+    // disable standby usb
     USB->DEVICE.CTRLA.bit.RUNSTDBY = 0;
 
-    // Disable 8mhz GLCK 3 that bootloader has setup, unused?
+    // global clocks
 
+    // Disable 8mhz GLCK 3 that bootloader has setup, unused?
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
     while (GCLK->STATUS.bit.SYNCBUSY)
         ;
@@ -56,20 +73,21 @@ void setup(void)
     while (GCLK->STATUS.bit.SYNCBUSY)
         ;
 
-    // disable GLCK_DAC
+    // disable DAC clock
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_DAC);
     while (GCLK->STATUS.bit.SYNCBUSY)
         ;
 
     // power manager
-
-    // Clock SERCOM for Serial, TC/TCC for Pulse and Analog
+    // disable unused counters
+    // TODO: find proper way of doing this
     uint32_t currSet = PM->APBCMASK.reg;
 
     currSet &= ~PM_APBCMASK_SERCOM0; // hardware serial
     currSet &= ~PM_APBCMASK_SERCOM1; // unused
     currSet &= ~PM_APBCMASK_SERCOM3; // i2c
-    // currSet &= ~PM_APBCMASK_SERCOM5; // debug port
+    // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
+    // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
 
     currSet &= ~PM_APBCMASK_TCC0;
     currSet &= ~PM_APBCMASK_TCC1;
@@ -81,9 +99,8 @@ void setup(void)
     currSet &= ~PM_APBCMASK_DAC;
 
     PM->APBCMASK.reg = currSet;
-    // why does GLCK_SERCOM4_CORE (flash) show up but not GLCK_SERCOM2_CORE? because 2 is being used with dma??
 
-
+    // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);
 
@@ -106,7 +123,7 @@ void setup(void)
 
     analogReadResolution(12);
     pinMode(PIN_VBAT, INPUT);
-    
+
     flashSPI.begin();
     pinPeripheral(FLASH_MISO, PIO_SERCOM);
     pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
@@ -120,139 +137,120 @@ void setup(void)
     pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     // Init file system on the flash
-    // FORMAT FS - should only need to be done once
     g::stats.filesysFound = g::g_fatfs.begin(&flash);
     g::stats.flashSize = flash.size();
 
-    if (!g::stats.filesysFound && g::stats.flashSize != 0)
     {
-#ifdef FLASH_SETUP
-        FATFS elmchamFatfs;
-        uint8_t workbuf[4096]; // Working buffer for f_fdisk function.
+        // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
+        usb_msc.setID("Adafruit", "External Flash", "1.0");
 
-        // Make filesystem.
-        FRESULT r = f_mkfs("", FM_FAT | FM_SFD, 0, workbuf, sizeof(workbuf));
-        if (r != FR_OK)
-        {
-            while (1)
-                yield();
-        }
+        // Set callback
+        usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
+        usb_msc.setReadyCallback(msc_ready_cb);
 
-        // mount to set disk label
-        r = f_mount(&elmchamFatfs, "0:", 1);
-        if (r != FR_OK)
-        {
-            while (1)
-                yield();
-        }
+        // Set disk size, block size should be 512 regardless of spi flash page size
+        usb_msc.setCapacity(flash.pageSize() * flash.numPages() / 512, 512);
 
-        // Setting label
-        r = f_setlabel("PAWPET");
-        if (r != FR_OK)
-        {
-            while (1)
-                yield();
-        }
+        // MSC is ready for read/write
+        usb_msc.setUnitReady(true);
 
-        // unmount
-        f_unmount("0:");
-
-        // sync to make sure all data is written to flash
-        flash.syncBlocks();
-
-#endif
-    }
-    else if (g::stats.flashSize == 0)
-    {
-        Serial.println("Flash chip not found");
-    }
-    
-    {
-    // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
-    usb_msc.setID("Adafruit", "External Flash", "1.0");
-
-    // Set callback
-    usb_msc.setReadWriteCallback(msc_read_cb, msc_write_cb, msc_flush_cb);
-    usb_msc.setReadyCallback(msc_ready_cb);
-
-    // Set disk size, block size should be 512 regardless of spi flash page size
-    usb_msc.setCapacity(flash.pageSize() * flash.numPages() / 512, 512);
-
-    // MSC is ready for read/write
-    usb_msc.setUnitReady(true);
-
-    usb_msc.begin();
+        usb_msc.begin();
     }
 
+    // disable and re-enable usb to get serial and usb msc at the same time
     USBDevice.detach();
     delay(500);
     USBDevice.attach();
 
-    #ifdef DEBUG
-        while (!Serial)
-        {
-            ; // wait for serial port to connect.
-        }
-    #endif
+#ifdef DEBUG
+    // wait for serial to attach
+    while (!Serial)
+        ;
+
+    // dump registers for debugging power settings
+    ZeroRegOptions opts = {Serial, false};
+    printZeroRegs(opts);
+#endif
 
     buttonWakeup = false;
     nextSleepTime = 40000;
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
-
-#ifdef DEBUG
-    ZeroRegOptions opts = {Serial, false};
-    printZeroRegs(opts);
-#endif
 }
 
 uint32_t sleepTicks = 0;
-uint16_t frameInputState = 0;
+uint16_t keysPressed = 0;
+uint16_t prevKeysPressed = 0;
+
 uint32_t currentTimeMs = 0;
 uint32_t frameTimeMs = 0;
 uint32_t prevFrameMs = 0;
 
 uint32_t droppedFrames = 0;
 
+uint32_t requestedFpsSleep = k_30_fpsSleepMs;
+
 bool dirtyFrameBuffer = false;
 void loop(void)
 {
     //// UPDATE ////
-    frameInputState |= readButtons();
-
+    keysPressed |= readButtons();
+    
     currentTimeMs = millis();
 
-    if (frameInputState)
+    if (keysPressed)
     {
         nextSleepTime = currentTimeMs + 60000;
     }
 
     //// DRAW ////
     frameTimeMs = (currentTimeMs - prevFrameMs);
-    if (frameTimeMs > k_frameSleepTimeMs)
+    if (frameTimeMs >= requestedFpsSleep)
     {
         prevFrameMs = currentTimeMs;
 
-        GameState *nextState = currentState->update(frameInputState, k_tickTime);
+        g::keyPressed = keysPressed;
+        g::keyReleased = ~(prevKeysPressed) & (keysPressed);
+        
+        GameState *nextState = currentState->update();
 
         if (nextState != currentState)
         {
             delete currentState;
             currentState = nextState;
+
+            switch(nextState->tick)
+            {
+                case k_tickTime30:
+                requestedFpsSleep = k_30_fpsSleepMs;
+                break;
+                case k_tickTime15:
+                requestedFpsSleep = k_15_fpsSleepMs;
+                break;
+                case k_tickTime5:
+                requestedFpsSleep = k_5_fpsSleepMs;
+                break;
+                case k_tickTime1:
+                requestedFpsSleep = k_1_fpsSleepMs;
+                break;
+            }
+            
         }
 
+        // display is done with dma transfer
         if (!display.isFrameLocked())
         {
             if (currentState->redraw)
             {
                 display.fillDisplayBuffer();
                 currentState->draw(&display);
-                // drawOverlay(frameInputState);
-                // dirtyFrameBuffer = true;
+
+                dirtyFrameBuffer = true;
+                currentState->redraw = false;
             }
 
-            drawOverlay(frameInputState);
-            dirtyFrameBuffer = true;
+            // TODO, draw overlay should say if it needs an update
+            dirtyFrameBuffer |= drawOverlay();
 
             if (dirtyFrameBuffer)
             {
@@ -260,20 +258,25 @@ void loop(void)
                 display.refresh();
             }
         }
+        // display was still refreshing when next refresh was requested
         else if (currentState->redraw)
         {
             droppedFrames++;
         }
 
-        frameInputState = 0;
+        prevKeysPressed = keysPressed;
+        keysPressed = 0;
     }
 
     //// SLEEP ////
-    if (currentTimeMs > nextSleepTime)
+    if (currentTimeMs >= nextSleepTime)
     {
         display.sync();
 
+        // TODO: wakeup on flash chip not being triggered correctly
+        // BUG: on reset after sleep flash doesn't show up until second reset
         // flashTransport.runCommand(0xB9); // deep sleep
+
         LowPower.deepSleep(k_sleepTimeMs);
         buttonWakeup = false;
 
@@ -297,12 +300,15 @@ void loop(void)
         }
 
         //// SLEEP-UPDATE ////
-        GameState *nextState = currentState->update(frameInputState, 1);
+        GameState *nextState = currentState->update();
         if (nextState != currentState)
         {
             delete currentState;
             currentState = nextState;
         }
+
+        // TODO remove, being used to force overlay redraw in sleep mode
+        // find better way to update every minute logic
         currentState->redraw = true;
 
         //// SLEEP-DRAW ////
@@ -312,8 +318,9 @@ void loop(void)
             {
                 display.fillDisplayBuffer();
                 currentState->draw(&display);
-                drawOverlay(frameInputState);
+                drawOverlay();
                 dirtyFrameBuffer = true;
+                currentState->redraw = false;
             }
 
             if (dirtyFrameBuffer)
@@ -365,24 +372,22 @@ uint16_t readButtons()
     return inputState;
 }
 
-void drawOverlay(uint16_t inputState)
+bool drawOverlay()
 {
     uint32_t elapsedTimeSeconds = currentTimeMs / 1000.0;
     // uint32_t hours = (elapsedTimeSeconds / 60 / 60);
     uint32_t minutes = (elapsedTimeSeconds / 60);
     uint32_t seconds = (elapsedTimeSeconds % 60);
 
-    // text display tests
     display.setCursor(0, 0);
     display.setTextColor(PET_WHITE, PET_BLACK); // inverted text
     display.fillRect(0, 0, 64, 8, PET_BLACK);
 
-    // char buf[PRINTF_BUF];
-    display.printf("%02u:%02u ", minutes, seconds);
-    if (nextSleepTime > millis())
+    // display.printf("%02u:%02u ", minutes, seconds);
+    if (nextSleepTime > currentTimeMs)
     {
-        // display.printf("%02u %02u", frameTimeMs, droppedFrames);
-        // display.printf(" %02u\n", (nextSleepTime - millis()) / 1000);
+        display.printf("%02u %02u", frameTimeMs, droppedFrames % 100);
+        display.printf(" %02u\n", (nextSleepTime - currentTimeMs) / 1000);
     }
     else
     {
@@ -390,12 +395,12 @@ void drawOverlay(uint16_t inputState)
     }
 
     int intBat = Util::batteryLevel();
-    //display.printf(" %03u\n", intBat);
 
     // 1.5*2 alk
     // 1.4*2 nimh
-    // -0.2 shottky
-    // 260-280 full charge
+    // 2.60-2.80 full charge
+    // 2.0v discharged?
+    // discharge curves are non-linear, needs tunning
     int batFrame = 0;
 
     if (intBat > 260)
@@ -419,9 +424,10 @@ void drawOverlay(uint16_t inputState)
         batFrame = 4;
     }
 
-    display.drawFrame(PETPIC(battery), 48, 0, batFrame);
-
+    // display.drawFrame(PETPIC(battery), 48, 0, batFrame);
     // display.drawFrame("battery", 48, 0, batFrame);
+
+    return true;
 }
 
 void buttonWakeupCallback()
@@ -470,72 +476,3 @@ bool msc_ready_cb(void)
     // nextSleepTime = usbConnectedTime + 60000;
     return true;
 }
-
-#ifdef FLASH_SETUP
-
-DSTATUS disk_status(BYTE pdrv)
-{
-    (void)pdrv;
-    return 0;
-}
-
-DSTATUS disk_initialize(BYTE pdrv)
-{
-    (void)pdrv;
-    return 0;
-}
-
-DRESULT disk_read(
-    BYTE pdrv,    /* Physical drive nmuber to identify the drive */
-    BYTE *buff,   /* Data buffer to store read data */
-    DWORD sector, /* Start sector in LBA */
-    UINT count    /* Number of sectors to read */
-)
-{
-    (void)pdrv;
-    return flash.readBlocks(sector, buff, count) ? RES_OK : RES_ERROR;
-}
-
-DRESULT disk_write(
-    BYTE pdrv,        /* Physical drive nmuber to identify the drive */
-    const BYTE *buff, /* Data to be written */
-    DWORD sector,     /* Start sector in LBA */
-    UINT count        /* Number of sectors to write */
-)
-{
-    (void)pdrv;
-    return flash.writeBlocks(sector, buff, count) ? RES_OK : RES_ERROR;
-}
-
-DRESULT disk_ioctl(
-    BYTE pdrv, /* Physical drive nmuber (0..) */
-    BYTE cmd,  /* Control code */
-    void *buff /* Buffer to send/receive control data */
-)
-{
-    (void)pdrv;
-
-    switch (cmd)
-    {
-    case CTRL_SYNC:
-        flash.syncBlocks();
-        return RES_OK;
-
-    case GET_SECTOR_COUNT:
-        *((DWORD *)buff) = flash.size() / 512;
-        return RES_OK;
-
-    case GET_SECTOR_SIZE:
-        *((WORD *)buff) = 512;
-        return RES_OK;
-
-    case GET_BLOCK_SIZE:
-        *((DWORD *)buff) = 8; // erase block size in units of sector size
-        return RES_OK;
-
-    default:
-        return RES_PARERR;
-    }
-}
-
-#endif
