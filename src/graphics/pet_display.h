@@ -2,16 +2,16 @@
 #include "../common.h"
 
 #include <Adafruit_GFX.h>
-#include <utility/dma.h>
-#include <Adafruit_ZeroDMA.h>
 #include <Adafruit_SPIDevice.h>
+#include <Adafruit_ZeroDMA.h>
+#include <utility/dma.h>
 
 /**
  * Rewrite of Adafruit implementation of sharp memory lcd driver
  * adds DMA support
  * adds compressed image support
  * adds alpha channel support
- * 
+ *
  * TODO:
  * - dippled greyscale support?
  */
@@ -22,10 +22,8 @@
 
 class PetDisplay : public Adafruit_GFX
 {
-public:
-    PetDisplay(SPIClass *theSPI, uint8_t cs,
-               uint16_t width, uint16_t height,
-               uint32_t freq = 2000000);
+  public:
+    PetDisplay(SPIClass *theSPI, uint8_t cs, uint16_t width, uint16_t height, uint32_t freq = 2000000);
 
     boolean begin();
     void drawPixel(int16_t x, int16_t y, uint16_t color);
@@ -35,10 +33,10 @@ public:
     void refresh(void);
     static volatile bool transfer_is_done;
 
-protected:
+  protected:
     uint8_t *sharpmem_buffer = NULL;
 
-private:
+  private:
     static void dma_callback(Adafruit_ZeroDMA *dma);
     Adafruit_SPIDevice *spidev = NULL;
     uint8_t _cs;
@@ -47,14 +45,9 @@ private:
     Adafruit_ZeroDMA myDMA;
     ZeroDMAstatus stat;
 
-public:
-    void drawFrame(image_t *image,
-                   meta_t *meta,
-                   uint8_t dx, uint8_t dy,
-                   uint8_t frame,
-                   uint8_t off_color = PET_WHITE,
-                   uint8_t on_color = PET_BLACK,
-                   uint8_t alpha_color = PET_CLEAR);
+  public:
+    void drawFrame(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color = PET_WHITE,
+                   uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
     // void drawFrame(const char *name,
     //                uint8_t dx, uint8_t dy,
@@ -63,12 +56,8 @@ public:
     //                uint8_t on_color = PET_BLACK,
     //                uint8_t alpha_color = PET_CLEAR);
 
-    void drawImage(image_t *image,
-                   meta_t *meta,
-                   uint8_t dx, uint8_t dy,
-                   uint8_t off_color = PET_WHITE,
-                   uint8_t on_color = PET_BLACK,
-                   uint8_t alpha_color = PET_CLEAR);
+    void drawImage(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
+                   uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
     // void drawImage(const char *name,
     //                uint8_t dx, uint8_t dy,
@@ -76,17 +65,11 @@ public:
     //                uint8_t on_color = PET_BLACK,
     //                uint8_t alpha_color = PET_CLEAR);
 
-    void drawSpanMap(image_t *bitmap, const ImageMeta &meta,
-                     uint8_t dx, uint8_t dy,
-                     uint8_t off_color = PET_WHITE,
-                     uint8_t on_color = PET_BLACK,
-                     uint8_t alpha_color = PET_CLEAR);
+    void drawSpanMap(image_t *bitmap, const ImageMeta &meta, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
+                     uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
-    void drawBitmap(image_t *bitmap, const ImageMeta &meta,
-                    uint8_t dx, uint8_t dy,
-                    uint8_t off_color = PET_WHITE,
-                    uint8_t on_color = PET_BLACK,
-                    uint8_t alpha_color = PET_CLEAR);
+    void drawBitmap(image_t *bitmap, const ImageMeta &meta, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
+                    uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
     inline void setPixel(uint8_t x, uint8_t y, uint8_t c);
     inline void setPixel8(uint8_t x, int8_t y, uint8_t data);
@@ -96,7 +79,7 @@ public:
 
     void sync()
     {
-        while (!transfer_is_done);
+        while (!transfer_is_done) {}
     }
 
     bool isFrameLocked()

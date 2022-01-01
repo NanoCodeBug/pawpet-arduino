@@ -5,8 +5,8 @@
  * fork of arduino low power to add additional m0 specific power saving optimizations
  */
 
-#include <Arduino.h>
 #include "RTCZero.h"
+#include <Arduino.h>
 
 #define RTC_ALARM_WAKEUP 0xFF
 
@@ -14,41 +14,41 @@ typedef void (*onOffFuncPtr)(bool);
 
 typedef enum
 {
-	OTHER_WAKEUP = 0,
-	GPIO_WAKEUP = 1,
-	NFC_WAKEUP = 2,
-	ANALOG_COMPARATOR_WAKEUP = 3
+    OTHER_WAKEUP = 0,
+    GPIO_WAKEUP = 1,
+    NFC_WAKEUP = 2,
+    ANALOG_COMPARATOR_WAKEUP = 3
 } wakeup_reason;
 
 class ArduinoLowPowerClass
 {
-public:
-	void idle(void);
-	void idle(uint32_t millis);
-	void idle(int millis)
-	{
-		idle((uint32_t)millis);
-	}
+  public:
+    void idle(void);
+    void idle(uint32_t millis);
+    void idle(int millis)
+    {
+        idle((uint32_t)millis);
+    }
 
-	void sleep(void);
-	void sleep(uint32_t millis);
-	void sleep(int millis)
-	{
-		sleep((uint32_t)millis);
-	}
+    void sleep(void);
+    void sleep(uint32_t millis);
+    void sleep(int millis)
+    {
+        sleep((uint32_t)millis);
+    }
 
-	void deepSleep(void);
-	void deepSleep(uint32_t millis);
-	void deepSleep(int millis)
-	{
-		deepSleep((uint32_t)millis);
-	}
+    void deepSleep(void);
+    void deepSleep(uint32_t millis);
+    void deepSleep(int millis)
+    {
+        deepSleep((uint32_t)millis);
+    }
 
-	void attachInterruptWakeup(uint32_t pin, voidFuncPtr callback, uint32_t mode);
+    void attachInterruptWakeup(uint32_t pin, voidFuncPtr callback, uint32_t mode);
 
-private:
-	void setAlarmIn(uint32_t millis);
-	RTCZero rtc;
+  private:
+    void setAlarmIn(uint32_t millis);
+    RTCZero rtc;
 };
 
 extern ArduinoLowPowerClass LowPower;

@@ -25,7 +25,7 @@ class GraphicCache
     static CacheEntry gcache[GRAPHIC_CACHE_COUNT];
     static uint16_t gindex;
 
-public:
+  public:
     GraphicCache();
 
     int32_t LoadGraphic(const char *name);

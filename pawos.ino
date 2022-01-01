@@ -1,25 +1,23 @@
+#include <Adafruit_SPIFlash.h>
+#include <Adafruit_TinyUSB.h>
 #include <Arduino.h>
+#include <FatLib/FatFileSystem.h>
+#include <SPI.h>
 #include <WInterrupts.h>
 #include <wiring_private.h>
-#include <SPI.h>
-#include <Adafruit_TinyUSB.h>
-#include <Adafruit_SPIFlash.h>
-#include <FatLib/FatFileSystem.h>
 
-#include "src/lib/PawPet_FlashTransport.h"
 #include "src/lib/ArduinoLowPower.h"
+#include "src/lib/PawPet_FlashTransport.h"
 
+#include "src/common.h"
 #include "src/config.h"
 #include "src/global.h"
-#include "src/common.h"
 #include "src/states/gamestate.h"
 
 // TODO: Move setup of all devices elsewhere
 // have the .ino to contain the core update loop only
 
-static const SPIFlash_Device_t possible_devices[] = {
-  MX25R1635F
-};
+static const SPIFlash_Device_t possible_devices[] = {MX25R1635F};
 
 SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 
@@ -66,17 +64,14 @@ void setup(void)
 
     // Disable 8mhz GLCK 3 that bootloader has setup, unused?
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
-    while (GCLK->STATUS.bit.SYNCBUSY)
-        ;
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(3);
-    while (GCLK->STATUS.bit.SYNCBUSY)
-        ;
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     // disable DAC clock
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_DAC);
-    while (GCLK->STATUS.bit.SYNCBUSY)
-        ;
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     // power manager
     // disable unused counters
@@ -164,8 +159,7 @@ void setup(void)
 
 #ifdef DEBUG
     // wait for serial to attach
-    while (!Serial)
-        ;
+    while (!Serial) {}
 
     // dump registers for debugging power settings
     ZeroRegOptions opts = {Serial, false};
@@ -195,7 +189,7 @@ void loop(void)
 {
     //// UPDATE ////
     keysPressed |= readButtons();
-    
+
     currentTimeMs = millis();
 
     if (keysPressed)
@@ -211,7 +205,7 @@ void loop(void)
 
         g::keyPressed = keysPressed;
         g::keyReleased = ~(prevKeysPressed) & (keysPressed);
-        
+
         GameState *nextState = currentState->update();
 
         if (nextState != currentState)
@@ -219,22 +213,21 @@ void loop(void)
             delete currentState;
             currentState = nextState;
 
-            switch(nextState->tick)
+            switch (nextState->tick)
             {
-                case k_tickTime30:
+            case k_tickTime30:
                 requestedFpsSleep = k_30_fpsSleepMs;
                 break;
-                case k_tickTime15:
+            case k_tickTime15:
                 requestedFpsSleep = k_15_fpsSleepMs;
                 break;
-                case k_tickTime5:
+            case k_tickTime5:
                 requestedFpsSleep = k_5_fpsSleepMs;
                 break;
-                case k_tickTime1:
+            case k_tickTime1:
                 requestedFpsSleep = k_1_fpsSleepMs;
                 break;
             }
-            
         }
 
         // display is done with dma transfer
