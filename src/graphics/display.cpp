@@ -1,5 +1,5 @@
 
-#include "pet_display.h"
+#include "display.h"
 
 volatile bool PetDisplay::transfer_is_done = true;
 

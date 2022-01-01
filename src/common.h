@@ -3,6 +3,10 @@
 #include "config.h"
 #include <Arduino.h>
 
+// #define UF2_DEFINE_HANDOVER 1
+// #define SAMD21 1
+// #include <Adafruit_SleepyDog.h>
+
 #define PETPIC(x) x, x##_meta
 
 typedef const uint32_t image_t;
@@ -22,11 +26,7 @@ struct ImageMeta
 #define PET_BLACK 1
 #define PET_CLEAR 2
 
-// #define UF2_DEFINE_HANDOVER 1
-// #define SAMD21 1
-// #include <Adafruit_SleepyDog.h>
-
-#include "sprites.h"
+#include "graphics\sprites.h"
 
 enum ButtonFlags
 {

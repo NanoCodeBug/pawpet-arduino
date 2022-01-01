@@ -40,7 +40,7 @@ if ($exportAseprite) {
 
 # convert png to c header
 Remove-Item -Force -Recurse -Path "$buildFolder\assets\*"
-Invoke-Expression "python $projectRoot\png2c\png2c.py $projectRoot\sprites\ $projectRoot\src\sprites.h $buildFolder\assets\" 
+Invoke-Expression "python $projectRoot\png2c\png2c.py $projectRoot\sprites\ $projectRoot\src\graphics\sprites.h $buildFolder\assets\" 
 
 $buildString = @( 
     "compile",

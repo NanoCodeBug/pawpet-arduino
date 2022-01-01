@@ -28,6 +28,7 @@ namespace g
 {
 extern FatFileSystem g_fatfs;
 extern GraphicCache *g_cache;
+
 static struct
 {
     uint32_t flashSize;

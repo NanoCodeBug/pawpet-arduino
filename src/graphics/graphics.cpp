@@ -1,4 +1,4 @@
-#include "graphic_manager.h"
+#include "graphics.h"
 #include <FatLib/ArduinoFiles.h>
 #include <FatLib/FatFileSystem.h>
 
