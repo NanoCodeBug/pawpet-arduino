@@ -1,7 +1,7 @@
 
 #include "display.h"
 
-volatile bool PetDisplay::transfer_is_done = true;
+volatile bool PetDisplay::_dma_complete = true;
 
 #ifndef _swap_int16_t
 #define _swap_int16_t(a, b)                                                                                            \
@@ -41,11 +41,11 @@ PetDisplay::PetDisplay(SPIClass *theSPI, uint8_t cs, uint16_t width, uint16_t he
     : Adafruit_GFX(width, height)
 {
     _cs = cs;
-    if (spidev)
+    if (_spi)
     {
-        delete spidev;
+        delete _spi;
     }
-    spidev = new Adafruit_SPIDevice(cs, freq, SPI_BITORDER_LSBFIRST, SPI_MODE0, theSPI);
+    _spi = new Adafruit_SPIDevice(cs, freq, SPI_BITORDER_LSBFIRST, SPI_MODE0, theSPI);
 }
 
 /**
@@ -56,10 +56,16 @@ PetDisplay::PetDisplay(SPIClass *theSPI, uint8_t cs, uint16_t width, uint16_t he
  */
 boolean PetDisplay::begin(void)
 {
-    if (!spidev->begin())
+    if (!_spi->begin())
     {
         return false;
     }
+
+    sharpmem_buffer = (uint8_t *)malloc((WIDTH + 16) * HEIGHT / 8 + 2);
+
+    if (!sharpmem_buffer)
+        return false;
+
     // this display is weird in that _cs is active HIGH not LOW like every other
     // SPI device
     digitalWrite(_cs, LOW);
@@ -67,30 +73,39 @@ boolean PetDisplay::begin(void)
     // Set the vcom bit to a defined state
     _sharpmem_vcom = SHARPMEM_BIT_VCOM;
 
-    sharpmem_buffer = (uint8_t *)malloc((WIDTH + 16) * HEIGHT / 8 + 2);
-
-    if (!sharpmem_buffer)
-        return false;
-
     sharpmem_buffer += 1;
     sharpmem_buffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;
     sharpmem_buffer[(WIDTH + 16) * HEIGHT / 8 + 1] = 0x00;
-    setRotation(0);
 
     // SETUP DMA
-    myDMA.setTrigger(SERCOM4_DMAC_ID_TX);
-    myDMA.setAction(DMA_TRIGGER_ACTON_BEAT);
+    _dma.setTrigger(SERCOM4_DMAC_ID_TX);
+    _dma.setAction(DMA_TRIGGER_ACTON_BEAT);
 
-    stat = myDMA.allocate();
+    ZeroDMAstatus stat = _dma.allocate();
+    if (stat != DMA_STATUS_OK)
+    {
+        return false;
+    }
 
-    myDMA.addDescriptor(sharpmem_buffer - 1,              // move data from here
-                        (void *)(&SERCOM4->SPI.DATA.reg), // to here (M0)
-                        ((WIDTH + 16) * HEIGHT / 8) + 2,  // this many...
-                        DMA_BEAT_SIZE_BYTE,               // bytes/hword/words
-                        true,                             // increment source addr?
-                        false);                           // increment dest addr?
+    _dma.addDescriptor(sharpmem_buffer - 1,              // move data from here
+                       (void *)(&SERCOM4->SPI.DATA.reg), // to here (M0)
+                       ((WIDTH + 16) * HEIGHT / 8) + 2,  // this many...
+                       DMA_BEAT_SIZE_BYTE,               // bytes/hword/words
+                       true,                             // increment source addr?
+                       false);                           // increment dest addr?
 
-    myDMA.setCallback(PetDisplay::dma_callback);
+    _dma.setCallback(PetDisplay::dma_callback);
+
+    // zero memory buffer and setup display start/end of line info
+    for (uint32_t i = 0; i < k_totalBytes; i += k_bytesPerLine)
+    {
+        // clear data between first and last byte of line
+        memset(sharpmem_buffer + i + 1, 0xFF, k_bytesPerLine - 2);
+
+        // reset address and end of line data
+        sharpmem_buffer[i] = ((i + 1) / ((WIDTH + 16) / 8)) + 1;
+        sharpmem_buffer[i + k_bytesPerLine - 1] = 0x00;
+    }
 
     return true;
 }
@@ -107,6 +122,7 @@ static const uint8_t PROGMEM set1[] = {0x03, 0x0C, 0x30, 0xC0, 0x00, 0x00, 0x00,
 
 void PetDisplay::drawPixel(int16_t x, int16_t y, uint16_t color)
 {
+    // TODO can be optimized with memset
     drawSubPixel(x * 2, y * 2, color);
     drawSubPixel(x * 2 + 1, y * 2, color);
     drawSubPixel(x * 2, y * 2 + 1, color);
@@ -197,24 +213,29 @@ uint8_t PetDisplay::getPixel(uint16_t x, uint16_t y)
 /**************************************************************************/
 void PetDisplay::clearDisplay()
 {
-    memset(sharpmem_buffer, 0xFF, ((WIDTH + 16) * HEIGHT) / 8);
-    spidev->beginTransaction();
+    // memset(sharpmem_buffer, 0xFF, ((WIDTH + 16) * HEIGHT) / 8);
+
+    _spi->beginTransaction();
     // Send the clear screen command rather than doing a HW refresh (quicker)
     digitalWrite(_cs, HIGH);
 
     uint8_t clear_data[2] = {_sharpmem_vcom | SHARPMEM_BIT_CLEAR, 0x00};
-    spidev->transfer(clear_data, 2);
+    _spi->transfer(clear_data, 2);
 
     TOGGLE_VCOM;
     digitalWrite(_cs, LOW);
-    spidev->endTransaction();
+    _spi->endTransaction();
+
+    // empty display buffer
+    fillDisplayBuffer();
 }
 
 void PetDisplay::dma_callback(Adafruit_ZeroDMA *dma)
 {
     digitalWrite(8, LOW);
     SPI.endTransaction();
-    transfer_is_done = true;
+    
+    _dma_complete = true;
 }
 
 /**************************************************************************/
@@ -222,23 +243,40 @@ void PetDisplay::dma_callback(Adafruit_ZeroDMA *dma)
     @brief Renders the contents of the pixel buffer on the LCD
 */
 /**************************************************************************/
-void PetDisplay::refresh(void)
+bool PetDisplay::refresh(void)
 {
-    if (!transfer_is_done)
+    if (!_dma_complete)
     {
-        // Serial.println("skipping frame, still transmitting");
-        return;
+        return false;
     }
-    transfer_is_done = false;
+    _dma_complete = false;
 
     // SPI_BITORDER_LSBFIRST, SPI_MODE0
-    spidev->beginTransaction();
+    _spi->beginTransaction();
 
     digitalWrite(_cs, HIGH);
+
+    /**
+     * TODO, remove? flips polarity, not clear if this is ever needed
+     * sharp recommends toggling every second
+     * other sources use every 5 seconds
+     * sharp sample code says 1-30 second period
+     * experiments with 60 second sleep and wakeup have had no issue so far across all prototypes
+     * add timer interrupt or have millis tracked here to to avoid unncessary blinking on display refresh due to
+     * toggling this at lower power break out extcomm pin on display and map to pin on samd21, and setup a clock that
+     * runs in suspend?
+     */
+
     TOGGLE_VCOM;
 
-    // START DMA JOB
-    stat = myDMA.startJob();
+    // start dma job
+    ZeroDMAstatus stat = _dma.startJob();
+    if (stat != DMA_STATUS_OK)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void PetDisplay::drawFrame(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color,
@@ -475,27 +513,23 @@ inline void PetDisplay::setPixel8(uint8_t x, int8_t y, uint8_t data)
     sharpmem_buffer[(y * WIDTH + x) / 8] = pgm_read_byte(data);
 }
 
-void PetDisplay::fillDisplay(uint8_t color)
+void PetDisplay::fillScreen(uint16_t color)
 {
-    // memset(sharpmem_buffer, color ? 0x00 : 0xFF, (WIDTH * HEIGHT) / 8);
     fillDisplayBuffer(color);
-    refresh();
 }
 
-void PetDisplay::fillDisplayBuffer(uint8_t color)
+void PetDisplay::fillDisplayBuffer(uint8_t color) // PET_WHITE
 {
-    memset(sharpmem_buffer, color ? 0x00 : 0xFF, ((WIDTH + 16) * HEIGHT) / 8);
-    uint8_t bytes_per_line = (WIDTH + 16) / 8;
-    uint32_t totalbytes = ((WIDTH + 16) * HEIGHT) / 8;
+    // memset(sharpmem_buffer, color ? 0x00 : 0xFF, ((WIDTH + 16) * HEIGHT) / 8);
 
-    for (uint32_t i = 0; i < totalbytes; i += bytes_per_line)
+    for (uint32_t i = 0; i < k_totalBytes; i += k_bytesPerLine)
     {
-
         // clear data between first and last byte of line
-        memset(sharpmem_buffer + i + 1, color ? 0x00 : 0xFF, bytes_per_line - 2);
+        memset(sharpmem_buffer + i + 1, color ? 0x00 : 0xFF, k_bytesPerLine - 2);
 
         // reset address and end of line data
-        sharpmem_buffer[i] = ((i + 1) / ((WIDTH + 16) / 8)) + 1;
-        sharpmem_buffer[i + bytes_per_line - 1] = 0x00;
+        // TODO not needed as long as no other memset resets this info
+        // sharpmem_buffer[i] = ((i + 1) / ((WIDTH + 16) / 8)) + 1;
+        // sharpmem_buffer[i + bytes_per_line - 1] = 0x00;
     }
 }

@@ -23,27 +23,40 @@
 class PetDisplay : public Adafruit_GFX
 {
   public:
-    PetDisplay(SPIClass *theSPI, uint8_t cs, uint16_t width, uint16_t height, uint32_t freq = 2000000);
+    PetDisplay(SPIClass *spi, uint8_t cs, uint16_t width, uint16_t height, uint32_t freq = 2000000);
+    boolean begin();  
 
-    boolean begin();
-    void drawPixel(int16_t x, int16_t y, uint16_t color);
+    // Overridden functions from Adafruit_GFX
+    // special care to override users of memset
+    // since the row/column data needed by the display is 
+    // being kept in the graphics buffer
+    void drawPixel(int16_t x, int16_t y, uint16_t color) override;
+    void fillScreen(uint16_t color = PET_WHITE) override;
+
     void drawSubPixel(int16_t x, int16_t y, uint16_t color);
     uint8_t getPixel(uint16_t x, uint16_t y);
+
+    // clears display builtin command
     void clearDisplay();
-    void refresh(void);
-    static volatile bool transfer_is_done;
+
+    // send data to display
+    bool refresh();
 
   protected:
     uint8_t *sharpmem_buffer = NULL;
 
   private:
     static void dma_callback(Adafruit_ZeroDMA *dma);
-    Adafruit_SPIDevice *spidev = NULL;
+    static volatile bool _dma_complete;
+
+    Adafruit_SPIDevice *_spi = NULL;
     uint8_t _cs;
     uint8_t _sharpmem_vcom;
 
-    Adafruit_ZeroDMA myDMA;
-    ZeroDMAstatus stat;
+    Adafruit_ZeroDMA _dma;
+
+    const uint8_t k_bytesPerLine = (WIDTH + 16) / 8;
+    const uint32_t k_totalBytes = ((WIDTH + 16) * HEIGHT) / 8;
 
   public:
     void drawFrame(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color = PET_WHITE,
@@ -74,16 +87,15 @@ class PetDisplay : public Adafruit_GFX
     inline void setPixel(uint8_t x, uint8_t y, uint8_t c);
     inline void setPixel8(uint8_t x, int8_t y, uint8_t data);
 
-    void fillDisplay(uint8_t color = PET_WHITE);
     void fillDisplayBuffer(uint8_t color = PET_WHITE);
 
     void sync()
     {
-        while (!transfer_is_done) {}
+        while (!_dma_complete) {}
     }
 
     bool isFrameLocked()
     {
-        return !transfer_is_done;
+        return !_dma_complete;
     }
 };

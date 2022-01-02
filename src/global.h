@@ -24,17 +24,20 @@ constexpr uint32_t k_tickTime1 = 63; // k_frameSleepTimeMs / 16; 1 fps ticks
 class FatFileSystem;
 class GraphicCache;
 
+struct stats
+{
+    uint32_t flashSize;
+    uint32_t freeSpace;
+    bool filesysFound;
+};
+
 namespace g
 {
 extern FatFileSystem g_fatfs;
 extern GraphicCache *g_cache;
 
-static struct
-{
-    uint32_t flashSize;
-    uint8_t filesysFound : 1;
-} stats;
+extern stats g_stats;
 
-extern uint32_t keyReleased;
-extern uint32_t keyPressed;
+extern uint32_t g_keyReleased;
+extern uint32_t g_keyPressed;
 } // namespace g

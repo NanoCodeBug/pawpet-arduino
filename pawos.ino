@@ -14,95 +14,54 @@
 #include "src/global.h"
 #include "src/states/gamestate.h"
 
+#ifdef DEBUG
+#include <ZeroRegs.h>
+#endif
+
 // TODO: Move setup of all devices elsewhere
 // have the .ino to contain the core update loop only
 
 static const SPIFlash_Device_t possible_devices[] = {MX25R1635F};
-
-SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
-
 SPIClass flashSPI(&sercom2, FLASH_MISO, FLASH_SCK, FLASH_MOSI, SPI_PAD_0_SCK_1, SERCOM_RX_PAD_2);
-
 PawPet_FlashTransport_SPI flashTransport(FLASH_CS, flashSPI);
 Adafruit_SPIFlash flash(&flashTransport);
 
+SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 PetDisplay display(&dispSPI, SHARP_SS, DISP_WIDTH, DISP_HEIGHT);
-GameState *currentState;
 
+// used by usb and button interrupts to keep the device awake when in use
 volatile bool buttonWakeup;
 volatile uint32_t nextSleepTime;
 
+// button reading and interrupts
 void buttonWakeupCallback();
 uint16_t readButtons();
-bool drawOverlay();
 
-// USB Mass Storage object
+// gamestate and ui
+bool drawTimeAndBattery();
+GameState *currentState;
+
+void disableUnusedClocks();
+
+// USB Mass Storage object functions
 Adafruit_USBD_MSC usb_msc;
 int32_t msc_read_cb(uint32_t lba, void *buffer, uint32_t bufsize);
 int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize, uint32_t tag);
 void msc_flush_cb(void);
 bool msc_ready_cb();
 
-#ifdef DEBUG
-#include <ZeroRegs.h>
-#endif
-
-// Set to true when PC write to flash
-bool changed;
-uint32_t usbConnectedTime = false;
-
-static char buffer[80];
-
 void setup(void)
 {
-    Serial.begin(9600);
-
-    // disable standby usb
-    USB->DEVICE.CTRLA.bit.RUNSTDBY = 0;
-
-    // global clocks
-
-    // Disable 8mhz GLCK 3 that bootloader has setup, unused?
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
-    while (GCLK->STATUS.bit.SYNCBUSY) {}
-
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(3);
-    while (GCLK->STATUS.bit.SYNCBUSY) {}
-
-    // disable DAC clock
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_DAC);
-    while (GCLK->STATUS.bit.SYNCBUSY) {}
-
-    // power manager
-    // disable unused counters
-    // TODO: find proper way of doing this
-    uint32_t currSet = PM->APBCMASK.reg;
-
-    currSet &= ~PM_APBCMASK_SERCOM0; // hardware serial
-    currSet &= ~PM_APBCMASK_SERCOM1; // unused
-    currSet &= ~PM_APBCMASK_SERCOM3; // i2c
-    // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
-    // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
-
-    currSet &= ~PM_APBCMASK_TCC0;
-    currSet &= ~PM_APBCMASK_TCC1;
-    currSet &= ~PM_APBCMASK_TCC2;
-    currSet &= ~PM_APBCMASK_TC3;
-    currSet &= ~PM_APBCMASK_TC4;
-    currSet &= ~PM_APBCMASK_TC6;
-    currSet &= ~PM_APBCMASK_TC7;
-    currSet &= ~PM_APBCMASK_DAC;
-
-    PM->APBCMASK.reg = currSet;
+    // power management
+    disableUnusedClocks();
 
     // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);
 
-    display.begin();
-    display.fillDisplayBuffer(PET_BLACK);
-    display.refresh();
     display.setRotation(DISP_ROTATION);
+    display.begin();
+    display.refresh();
 
     pinMode(PIN_BUTTON_A, INPUT_PULLUP);
     pinMode(PIN_BUTTON_B, INPUT_PULLUP);
@@ -126,14 +85,14 @@ void setup(void)
     pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     flash.begin(possible_devices);
-    pinPeripheral(FLASH_MISO, PIO_SERCOM);
-    pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
-    pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
-    pinPeripheral(FLASH_CS, PIO_DIGITAL);
+    // pinPeripheral(FLASH_MISO, PIO_SERCOM);
+    // pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
+    // pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
+    // pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     // Init file system on the flash
-    g::stats.filesysFound = g::g_fatfs.begin(&flash);
-    g::stats.flashSize = flash.size();
+    g::g_stats.filesysFound = g::g_fatfs.begin(&flash);
+    g::g_stats.flashSize = flash.size();
 
     {
         // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
@@ -158,6 +117,8 @@ void setup(void)
     USBDevice.attach();
 
 #ifdef DEBUG
+    Serial.begin(9600);
+
     // wait for serial to attach
     while (!Serial) {}
 
@@ -203,8 +164,8 @@ void loop(void)
     {
         prevFrameMs = currentTimeMs;
 
-        g::keyPressed = keysPressed;
-        g::keyReleased = ~(prevKeysPressed) & (keysPressed);
+        g::g_keyPressed = keysPressed;
+        g::g_keyReleased = ~(prevKeysPressed) & (keysPressed);
 
         GameState *nextState = currentState->update();
 
@@ -243,7 +204,7 @@ void loop(void)
             }
 
             // TODO, draw overlay should say if it needs an update
-            dirtyFrameBuffer |= drawOverlay();
+            dirtyFrameBuffer |= drawTimeAndBattery();
 
             if (dirtyFrameBuffer)
             {
@@ -311,7 +272,7 @@ void loop(void)
             {
                 display.fillDisplayBuffer();
                 currentState->draw(&display);
-                drawOverlay();
+                drawTimeAndBattery();
                 dirtyFrameBuffer = true;
                 currentState->redraw = false;
             }
@@ -365,7 +326,7 @@ uint16_t readButtons()
     return inputState;
 }
 
-bool drawOverlay()
+bool drawTimeAndBattery()
 {
     uint32_t elapsedTimeSeconds = currentTimeMs / 1000.0;
     // uint32_t hours = (elapsedTimeSeconds / 60 / 60);
@@ -466,6 +427,47 @@ void msc_flush_cb(void)
 bool msc_ready_cb(void)
 {
     // usbConnectedTime = millis();
-    // nextSleepTime = usbConnectedTime + 60000;
+    nextSleepTime = millis() + 60000;
     return true;
+}
+
+void disableUnusedClocks()
+{
+    // disable standby usb
+    USB->DEVICE.CTRLA.bit.RUNSTDBY = 0;
+
+    // global clocks
+
+    // Disable 8mhz GLCK 3 that bootloader has setup, unused?
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(3);
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    // disable DAC clock
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_DAC);
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    // power manager
+    // disable unused counters
+    // TODO: find proper way of doing this
+    uint32_t currSet = PM->APBCMASK.reg;
+
+    currSet &= ~PM_APBCMASK_SERCOM0; // hardware serial
+    currSet &= ~PM_APBCMASK_SERCOM1; // unused
+    currSet &= ~PM_APBCMASK_SERCOM3; // i2c
+    // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
+    // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
+
+    currSet &= ~PM_APBCMASK_TCC0;
+    currSet &= ~PM_APBCMASK_TCC1;
+    currSet &= ~PM_APBCMASK_TCC2;
+    currSet &= ~PM_APBCMASK_TC3;
+    currSet &= ~PM_APBCMASK_TC4;
+    currSet &= ~PM_APBCMASK_TC6;
+    currSet &= ~PM_APBCMASK_TC7;
+    currSet &= ~PM_APBCMASK_DAC;
+
+    PM->APBCMASK.reg = currSet;
 }
