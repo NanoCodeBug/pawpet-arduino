@@ -35,7 +35,7 @@ volatile uint32_t nextSleepTime;
 
 // button reading and interrupts
 void buttonWakeupCallback();
-uint16_t readButtons();
+uint8_t readButtons();
 
 // gamestate and ui
 bool drawTimeAndBattery();
@@ -85,13 +85,10 @@ void setup(void)
     pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     flash.begin(possible_devices);
-    // pinPeripheral(FLASH_MISO, PIO_SERCOM);
-    // pinPeripheral(FLASH_SCK, PIO_SERCOM_ALT);
-    // pinPeripheral(FLASH_MOSI, PIO_SERCOM_ALT);
-    // pinPeripheral(FLASH_CS, PIO_DIGITAL);
 
     // Init file system on the flash
-    g::g_stats.filesysFound = g::g_fatfs.begin(&flash);
+    g::g_fatfs = new FatFileSystem;
+    g::g_stats.filesysFound = g::g_fatfs->begin(&flash);
     g::g_stats.flashSize = flash.size();
 
     {
@@ -134,16 +131,18 @@ void setup(void)
 }
 
 uint32_t sleepTicks = 0;
-uint16_t keysPressed = 0;
-uint16_t prevKeysPressed = 0;
+uint8_t keysPressed = 0;
+uint8_t prevKeysPressed = 0;
 
 uint32_t currentTimeMs = 0;
 uint32_t frameTimeMs = 0;
 uint32_t prevFrameMs = 0;
 
-uint32_t droppedFrames = 0;
+uint8_t droppedFrames = 0;
+uint32_t peakUpdateTime = 0;
+uint32_t peakDrawTime = 0;
 
-uint32_t requestedFpsSleep = k_30_fpsSleepMs;
+uint16_t requestedFpsSleep = k_30_fpsSleepMs;
 
 bool dirtyFrameBuffer = false;
 void loop(void)
@@ -162,17 +161,24 @@ void loop(void)
     frameTimeMs = (currentTimeMs - prevFrameMs);
     if (frameTimeMs >= requestedFpsSleep)
     {
+
         prevFrameMs = currentTimeMs;
 
         g::g_keyPressed = keysPressed;
         g::g_keyReleased = ~(prevKeysPressed) & (keysPressed);
 
+        uint32_t t1 = millis();
         GameState *nextState = currentState->update();
+        uint32_t d1 = millis() - t1;
+        peakUpdateTime = (d1 > peakUpdateTime) ? d1 : peakUpdateTime;
 
         if (nextState != currentState)
         {
             delete currentState;
             currentState = nextState;
+
+            peakDrawTime = 0;
+            peakUpdateTime = 0;
 
             switch (nextState->tick)
             {
@@ -191,28 +197,34 @@ void loop(void)
             }
         }
 
-        // display is done with dma transfer
-        if (!display.isFrameLocked())
+        t1 = millis();
+        if (currentState->redraw)
         {
-            if (currentState->redraw)
-            {
-                display.fillDisplayBuffer();
-                currentState->draw(&display);
-
-                dirtyFrameBuffer = true;
-                currentState->redraw = false;
-            }
+            display.fillDisplayBuffer();
+            currentState->draw(&display);
 
             // TODO, draw overlay should say if it needs an update
             dirtyFrameBuffer |= drawTimeAndBattery();
 
+            dirtyFrameBuffer = true;
+            currentState->redraw = false;
+        }
+        
+        // display is done with dma transfer, approx 9ms
+        if (!display.isFrameLocked())
+        {
             if (dirtyFrameBuffer)
             {
                 dirtyFrameBuffer = false;
+                
+                d1 = millis() - t1;
+                peakDrawTime = (d1 > peakDrawTime) ? d1 : peakDrawTime;
                 display.refresh();
+                
             }
         }
         // display was still refreshing when next refresh was requested
+        // somehow has hit a less than 10 ms draw time
         else if (currentState->redraw)
         {
             droppedFrames++;
@@ -287,9 +299,9 @@ void loop(void)
     }
 }
 
-uint16_t readButtons()
+uint8_t readButtons()
 {
-    uint16_t inputState = 0;
+    uint8_t inputState = 0;
     if (!digitalRead(PIN_BUTTON_A))
     {
         inputState |= BUTTON_A;
@@ -340,22 +352,21 @@ bool drawTimeAndBattery()
     // display.printf("%02u:%02u ", minutes, seconds);
     if (nextSleepTime > currentTimeMs)
     {
-        display.printf("%02u %02u", frameTimeMs, droppedFrames % 100);
-        display.printf(" %02u\n", (nextSleepTime - currentTimeMs) / 1000);
+        display.printf("%02u %02u %02u", peakUpdateTime, peakDrawTime, droppedFrames % 100);
     }
     else
     {
         display.printf("Zz\n");
     }
 
-    int intBat = Util::batteryLevel();
+    uint16_t intBat = Util::batteryLevel();
 
     // 1.5*2 alk
     // 1.4*2 nimh
     // 2.60-2.80 full charge
     // 2.0v discharged?
     // discharge curves are non-linear, needs tunning
-    int batFrame = 0;
+    uint8_t batFrame = 0;
 
     if (intBat > 260)
     {
@@ -419,7 +430,7 @@ void msc_flush_cb(void)
     flash.syncBlocks();
 
     // clear file system's cache to force refresh
-    g::g_fatfs.cacheClear();
+    g::g_fatfs->cacheClear();
 
     // changed = true;
 }

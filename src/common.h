@@ -16,10 +16,17 @@ struct ImageMeta
 {
     uint16_t width;
     uint16_t height;
-    uint16_t alpha;      // has alpha channel
-    uint16_t encoding;   // true: span encoded, false: bitmap
-    uint16_t tileCount;  // number of tiles
-    uint16_t tileOffset; // array of offsets to start of each tile
+    uint16_t alpha;         // has alpha channel
+    uint16_t encoding;      // true: span encoded, false: bitmap
+    uint16_t tileCount;     // number of tiles
+    uint16_t tileOffsets;
+};
+
+struct PetImage
+{
+    ImageMeta* meta;
+    uint16_t * tileOffsets; // array of offsets to start of each tile
+    uint32_t * data;
 };
 
 #define PET_WHITE 0
@@ -48,7 +55,7 @@ extern "C" char *sbrk(int i);
 class Util
 {
   public:
-    inline static int batteryLevel()
+    inline static uint16_t batteryLevel()
     {
         while (ADC->STATUS.bit.SYNCBUSY == 1) {}
         ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2_Val;  // Gain Factor Selection
@@ -62,10 +69,10 @@ class Util
         return vbat * 100;
     }
 
-    static int32_t FreeRam()
+    static uint32_t FreeRam()
     {
         char stack_dummy = 0;
-        return &stack_dummy - sbrk(0);
+        return &stack_dummy - reinterpret_cast<char *>(sbrk(0));
     }
 };
 

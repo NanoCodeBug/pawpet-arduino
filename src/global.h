@@ -33,7 +33,7 @@ struct stats
 
 namespace g
 {
-extern FatFileSystem g_fatfs;
+extern FatFileSystem *g_fatfs;
 extern GraphicCache *g_cache;
 
 extern stats g_stats;

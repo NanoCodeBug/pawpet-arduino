@@ -17,8 +17,8 @@
  */
 
 #define SHARPMEM_BIT_WRITECMD (0x01) // 0x80 in LSB format
-#define SHARPMEM_BIT_VCOM (0x02)     // 0x40 in LSB format
-#define SHARPMEM_BIT_CLEAR (0x04)    // 0x20 in LSB format
+#define SHARPMEM_BIT_VCOM     (0x02) // 0x40 in LSB format
+#define SHARPMEM_BIT_CLEAR    (0x04) // 0x20 in LSB format
 
 class PetDisplay : public Adafruit_GFX
 {
@@ -42,8 +42,14 @@ class PetDisplay : public Adafruit_GFX
     // send data to display
     bool refresh();
 
+    void initBuffer(uint8_t* buffer);
+
   protected:
-    uint8_t *sharpmem_buffer = NULL;
+    uint8_t *_drawBuffer = NULL;
+    uint8_t *_sendBuffer = NULL;
+
+    uint8_t *_buffer1 = NULL;
+    uint8_t *_buffer2 = NULL;
 
   private:
     static void dma_callback(Adafruit_ZeroDMA *dma);

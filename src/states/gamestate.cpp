@@ -131,12 +131,7 @@ void TestGame1::draw(PetDisplay *disp)
 StatsState::StatsState() : GameState(3)
 {
     tick = k_tickTime1;
-    // g::g_cache->LoadGraphic("testface");
-    // g::g_cache->GetGraphic("testface", &testMeta, &testImage);
 }
-
-// uint32_t* testImage;
-// uint16_t* testMeta;
 
 GameState *StatsState::update()
 {
@@ -167,12 +162,7 @@ AnimationTest::AnimationTest() : GameState(4)
     curFrame = 0;
     curTick = 0;
     dir = true;
-    // g::g_cache->LoadGraphic("testface");
-    // g::g_cache->GetGraphic("testface", &testMeta, &testImage);
 }
-
-// uint32_t* testImage;
-// uint16_t* testMeta;
 
 GameState *AnimationTest::update()
 {
@@ -212,8 +202,6 @@ void AnimationTest::draw(PetDisplay *disp)
     disp->setTextColor(PET_BLACK);
 
     disp->drawFrame(PETPIC(pet_sit), 0, 8, curFrame);
-    // disp->drawImage(testImage, testMeta, 20, 30);
-    // disp->drawImage(testImage, testMeta, 0, 8 );
 }
 
 SleepScreen::SleepScreen() : GameState(5)

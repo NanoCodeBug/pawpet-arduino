@@ -9,11 +9,11 @@
 class GameState
 {
   public:
-    const uint32_t id;              // state id for requesting next state
+    const uint8_t id;             // state id for requesting next state?
     bool redraw = true;           // redraw of screen requsted
     uint32_t tick = k_tickTime30; // requested tick time of state
 
-    GameState(uint32_t sid) : id(sid) {};
+    GameState(uint32_t sid) : id(sid){};
 
     virtual ~GameState(){};
 
