@@ -25,7 +25,7 @@ volatile bool PetDisplay::_dma_complete = true;
     do                                                                                                                 \
     {                                                                                                                  \
         _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
-        _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                  \
+        _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
     } while (0);
 
 /**
@@ -66,10 +66,10 @@ boolean PetDisplay::begin(void)
     // 9.224 ms to send one buffer
     // max possible throughput of 108 fps
     // (leaves 9 ms for game update and logic)
-    // (not sure actual lcd can refresh that quick) 
+    // (not sure actual lcd can refresh that quick)
 
     _buffer1 = (uint8_t *)malloc((WIDTH + 16) * HEIGHT / 8 + 2);
-    
+
     // double buffer?
     _buffer2 = (uint8_t *)malloc((WIDTH + 16) * HEIGHT / 8 + 2);
 
@@ -95,7 +95,7 @@ boolean PetDisplay::begin(void)
         return false;
     }
 
-    _dma.addDescriptor( _sendBuffer - 1,                 // move data from here
+    _dma.addDescriptor(_sendBuffer - 1,                  // move data from here
                        (void *)(&SERCOM4->SPI.DATA.reg), // to here (M0)
                        ((WIDTH + 16) * HEIGHT / 8) + 2,  // this many...
                        DMA_BEAT_SIZE_BYTE,               // bytes/hword/words
@@ -265,7 +265,7 @@ bool PetDisplay::refresh(void)
     // uint8_t * buf = _sendBuffer;
     // _sendBuffer = _drawBuffer;
     // _drawBuffer = buf;
-    
+
     // time spent waiting for dma to finish while single bufferring:
     // update, wait (9ms - update), then draw, send
 
@@ -273,9 +273,9 @@ bool PetDisplay::refresh(void)
     // update, draw, swap (1ms), send
     // at the cost of 2kb of ram ~ 7%
 
-    // TODO find way to swap pointers instead? 
+    // TODO find way to swap pointers instead?
     // unless cost of having two dma objects or re-initializing dma is higher than a 1ms
-    memcpy(_sendBuffer-1, _drawBuffer-1, (WIDTH + 16) * HEIGHT / 8 + 2);
+    memcpy(_sendBuffer - 1, _drawBuffer - 1, (WIDTH + 16) * HEIGHT / 8 + 2);
 
     // start dma job
     ZeroDMAstatus stat = _dma.startJob();
@@ -287,87 +287,101 @@ bool PetDisplay::refresh(void)
     return true;
 }
 
-void PetDisplay::drawFrame(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color,
-                           uint8_t on_color, uint8_t alpha_color)
+void PetDisplay::drawFrame(image_t *image, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color, uint8_t on_color,
+                           uint8_t alpha_color)
 {
-    ImageMeta &m = *((ImageMeta *)meta);
+    PetImage pm;
+    pm.meta = (ImageMeta *)image;
+    pm.tileOffsets = (uint16_t *)(image + (sizeof(ImageMeta) + 2) / 4);
 
-    image_t *bitmap = image;
+    // round up to next even number
+    uint16_t endOfOffsets = pm.meta->tileCount + (pm.meta->tileCount % 2);
 
-    if (frame >= m.tileCount)
+    pm.data = (uint32_t *)(pm.tileOffsets + endOfOffsets);
+
+    if (frame >= pm.meta->tileCount)
     {
         return;
     }
 
-    if (m.encoding)
+    if (pm.meta->encoding)
     {
         // supposed to contain array of locations of start of each span encoded frame
-        bitmap += ((meta_t *)(&m.tileOffsets))[frame];
-        drawSpanMap(bitmap, m, dx, dy, off_color, on_color, alpha_color);
+        pm.data += pm.tileOffsets[frame];
+        if (pm.meta->alpha)
+        {
+            drawSpanMapA(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
+        }
+        else
+        {
+            drawSpanMap(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
+        }
     }
+
     // move bitmap to point to start of image
     // frames are not packed into eachother
     // for tiles 4 bytes per image_t, 16 pixels alpha, 32 pixels b/w
     else
     {
-        if (m.alpha)
+        if (pm.meta->alpha)
         {
-            bitmap = bitmap + (m.width * m.height) / 16 * frame;
+            pm.data += (pm.meta->width * pm.meta->height) / 16 * frame;
+            drawBitmapA(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
         }
         else
         {
-            bitmap = bitmap + (m.width * m.height) / 32 * frame;
+            pm.data += (pm.meta->width * pm.meta->height) / 32 * frame;
+            drawBitmap(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
+        }
+    }
+}
+
+void PetDisplay::drawSpanMap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+                             uint8_t off_color, uint8_t on_color)
+{
+    const uint32_t bitmapLength = width * height;
+    uint32_t pixelsRead = 0;
+    uint8_t currByte = 0;
+    uint8_t currPack = 0;
+
+    while (pixelsRead < bitmapLength)
+    {
+        uint8_t pixelData = bitmap[currPack] >> currByte * 8;
+
+        uint8_t length = 0;
+        uint8_t color = 0;
+
+        length = pixelData & 0x7F;
+        color = (pixelData >> 7) & 0x1;
+
+        for (uint8_t p = 0; p < length; p++)
+        {
+            uint8_t i = pixelsRead % width;
+            uint8_t j = pixelsRead / width;
+
+            if (color == 1 && on_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, on_color);
+            }
+            else if (color == 0 && off_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, off_color);
+            }
+            pixelsRead++;
         }
 
-        drawBitmap(bitmap, m, dx, dy, off_color, on_color, alpha_color);
+        currByte++;
+        if (currByte > 3)
+        {
+            currByte = 0;
+            currPack++;
+        }
     }
 }
-
-// void PetDisplay::drawFrame(const char *name,
-//                            uint8_t dx, uint8_t dy,
-//                            uint8_t frame,
-//                            uint8_t off_color,
-//                            uint8_t on_color,
-//                            uint8_t alpha_color)
-// {
-//   uint16_t *meta;
-//   uint32_t *image;
-//   g::g_cache->GetGraphic(name, &meta, &image);
-//   drawFrame(image, meta, dx, dy, frame, off_color, on_color, alpha_color);
-// }
-
-void PetDisplay::drawImage(image_t *image, meta_t *meta, uint8_t dx, uint8_t dy, uint8_t off_color, uint8_t on_color,
-                           uint8_t alpha_color)
+void PetDisplay::drawSpanMapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+                              uint8_t off_color, uint8_t on_color, uint8_t alpha_color)
 {
-    ImageMeta &m = *((ImageMeta *)meta);
-    image_t *bitmap = image;
-
-    if (m.encoding)
-    {
-        drawSpanMap(bitmap, m, dx, dy, off_color, on_color, alpha_color);
-    }
-    else
-    {
-        drawBitmap(bitmap, m, dx, dy, off_color, on_color, alpha_color);
-    }
-}
-
-// void PetDisplay::drawImage(const char *name,
-//                            uint8_t dx, uint8_t dy,
-//                            uint8_t off_color,
-//                            uint8_t on_color,
-//                            uint8_t alpha_color)
-// {
-//   uint16_t *meta;
-//   uint32_t *image;
-//   g::g_cache->GetGraphic(name, &meta, &image);
-//   drawImage(image, meta, dx, dy, off_color, on_color, alpha_color);
-// }
-
-void PetDisplay::drawSpanMap(image_t *bitmap, const ImageMeta &meta, uint8_t dx, uint8_t dy, uint8_t off_color,
-                             uint8_t on_color, uint8_t alpha_color)
-{
-    uint32_t bitmapLength = meta.width * meta.height;
+    const uint32_t bitmapLength = width * height;
     uint32_t pixelsRead = 0;
     uint8_t currByte = 0;
     uint8_t currPack = 0;
@@ -380,21 +394,13 @@ void PetDisplay::drawSpanMap(image_t *bitmap, const ImageMeta &meta, uint8_t dx,
         uint8_t color = 0;
 
         // alpha channel spans one less bit
-        if (meta.alpha)
-        {
-            length = pixelData & 0x3F;
-            color = (pixelData >> 6) & 0x3;
-        }
-        else
-        {
-            length = pixelData & 0x7F;
-            color = (pixelData >> 7) & 0x1;
-        }
+        length = pixelData & 0x3F;
+        color = (pixelData >> 6) & 0x3;
 
         for (uint8_t p = 0; p < length; p++)
         {
-            uint8_t i = pixelsRead % meta.width;
-            uint8_t j = pixelsRead / meta.width;
+            uint8_t i = pixelsRead % width;
+            uint8_t j = pixelsRead / width;
 
             if (color == 1 && on_color != PET_CLEAR)
             {
@@ -404,10 +410,6 @@ void PetDisplay::drawSpanMap(image_t *bitmap, const ImageMeta &meta, uint8_t dx,
             {
                 setPixel(dx + i, dy + j, alpha_color);
             }
-            // else if(pixel == 0x3 && on_color != PET_CLEAR)
-            // {
-            //     setPixel(dx + i, dy + j, on_color);
-            // }
             else if (color == 0 && off_color != PET_CLEAR)
             {
                 setPixel(dx + i, dy + j, off_color);
@@ -424,101 +426,86 @@ void PetDisplay::drawSpanMap(image_t *bitmap, const ImageMeta &meta, uint8_t dx,
     }
 }
 
-void PetDisplay::drawBitmap(image_t *bitmap, const ImageMeta &meta, uint8_t dx, uint8_t dy, uint8_t off_color,
-                            uint8_t on_color, uint8_t alpha_color)
+void PetDisplay::drawBitmap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+                            uint8_t off_color, uint8_t on_color)
 {
-    if (meta.alpha)
+    // 32 pixels per uint32_t
+    uint32_t pack = 0;
+    uint8_t packIndex = 0;
+    uint8_t bitmapPack = 0;
+    // seq array access for performance
+    for (uint8_t j = 0; j < height; j++)
     {
-        // 16 pixels per uint32_t
-        uint32_t pack = 0;
-        uint8_t packIndex = 0;
-        uint8_t bitmapPack = 0;
-        // seq array access for performance
-        for (uint8_t j = 0; j < meta.height; j++)
+        for (uint8_t i = 0; i < width; i++)
         {
-            for (uint8_t i = 0; i < meta.width; i++)
+            // shift saved byte to next bit
+            if (packIndex > 0)
             {
-                // shift saved byte to next bit
-                if (packIndex > 0)
-                {
-                    pack >>= 2;
-                    packIndex--;
-                }
-                // read next byte
-                else
-                {
-                    packIndex = 15;
-                    pack = bitmap[bitmapPack];
-                    bitmapPack++;
-                }
-
-                uint8_t pixel = pack & 0x3;
-
-                if (pixel == 1 && on_color != PET_CLEAR)
-                {
-                    setPixel(dx + i, dy + j, on_color);
-                }
-                else if (pixel == 2 && alpha_color != PET_CLEAR)
-                {
-                    setPixel(dx + i, dy + j, alpha_color);
-                }
-                // else if(pixel == 0x3 && on_color != PET_CLEAR)
-                // {
-                //     setPixel(dx + i, dy + j, on_color);
-                // }
-                else if (pixel == 0 && off_color != PET_CLEAR)
-                {
-                    setPixel(dx + i, dy + j, off_color);
-                }
+                pack >>= 1;
+                packIndex--;
             }
-        }
-    }
-    else
-    {
-        // 32 pixels per uint32_t
-        uint32_t pack = 0;
-        uint8_t packIndex = 0;
-        uint8_t bitmapPack = 0;
-        // seq array access for performance
-        for (uint8_t j = 0; j < meta.height; j++)
-        {
-            for (uint8_t i = 0; i < meta.width; i++)
+            // read next byte
+            else
             {
-                // shift saved byte to next bit
-                if (packIndex > 0)
-                {
-                    pack >>= 1;
-                    packIndex--;
-                }
-                // read next byte
-                else
-                {
-                    packIndex = 31;
-                    pack = bitmap[bitmapPack];
-                    bitmapPack++;
-                }
+                packIndex = 31;
+                pack = bitmap[bitmapPack];
+                bitmapPack++;
+            }
 
-                if (pack & 0x1 && on_color != PET_CLEAR)
-                {
-                    setPixel(dx + i, dy + j, on_color);
-                }
-                else if (off_color != PET_CLEAR)
-                {
-                    setPixel(dx + i, dy + j, off_color);
-                }
+            if (pack & 0x1 && on_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, on_color);
+            }
+            else if (off_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, off_color);
             }
         }
     }
 }
 
-inline void PetDisplay::setPixel(uint8_t x, uint8_t y, uint8_t c)
+void PetDisplay::drawBitmapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+                             uint8_t off_color, uint8_t on_color, uint8_t alpha_color)
 {
-    drawPixel(x, y, c);
-}
+    // 16 pixels per uint32_t
+    uint32_t pack = 0;
+    uint8_t packIndex = 0;
+    uint8_t bitmapPack = 0;
+    // seq array access for performance
+    for (uint8_t j = 0; j < height; j++)
+    {
+        for (uint8_t i = 0; i < width; i++)
+        {
+            // shift saved byte to next bit
+            if (packIndex > 0)
+            {
+                pack >>= 2;
+                packIndex--;
+            }
+            // read next byte
+            else
+            {
+                packIndex = 15;
+                pack = bitmap[bitmapPack];
+                bitmapPack++;
+            }
 
-inline void PetDisplay::setPixel8(uint8_t x, int8_t y, uint8_t data)
-{
-    _drawBuffer[(y * WIDTH + x) / 8] = pgm_read_byte(data);
+            uint8_t pixel = pack & 0x3;
+
+            if (pixel == 1 && on_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, on_color);
+            }
+            else if (pixel == 2 && alpha_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, alpha_color);
+            }
+            else if (pixel == 0 && off_color != PET_CLEAR)
+            {
+                setPixel(dx + i, dy + j, off_color);
+            }
+        }
+    }
 }
 
 void PetDisplay::fillScreen(uint16_t color)
@@ -540,7 +527,7 @@ void PetDisplay::fillDisplayBuffer(uint8_t color) // PET_WHITE
     }
 }
 
-void PetDisplay::initBuffer(uint8_t* buffer)
+void PetDisplay::initBuffer(uint8_t *buffer)
 {
     buffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;
     buffer[(WIDTH + 16) * HEIGHT / 8 + 1] = 0x00;

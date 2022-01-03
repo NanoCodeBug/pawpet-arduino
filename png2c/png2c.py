@@ -139,33 +139,38 @@ def writeCGraphic(f, graphic):
         encoding = 1
     # add metadata to front of array
 
-    varString += "const uint16_t {0}_meta[] = {{".format(graphic["name"])
-
-
-    varString += "{0},{1},{2},{3},{4}".format(
-            graphic["width"], 
-            graphic["height"], 
-            1 if graphic["alpha"] else 0,
-            encoding,
-            graphic["tile_count"]
-            )
-
-    byteCount = 0
-
-    if("frame_offsets" in graphic):
-        varString += ','
-
-        for x in graphic["frame_offsets"]:
-            varString += "0x{0:02x}".format(x)
-            if byteCount < (len(graphic["frame_offsets"]) - 1):
-                varString += ','
-            else:
-                varString += "};\n"
-            byteCount += 1
-    else:
-        varString += "};\n"
 
     varString += "const uint32_t {0}[] = {{".format(graphic["name"])
+
+    varString += "0x{1:04x}{0:04x},".format(
+            graphic["width"], 
+            graphic["height"])
+    
+    varString += "0x{1:04x}{0:04x},".format(
+            1 if graphic["alpha"] else 0,
+            encoding)
+
+    varString += "0x{1:04x}{0:04x},".format(
+            graphic["tile_count"],
+            0)
+
+    byteCount = 0
+    varString += "/* offsets */"
+
+    if("frame_offsets" in graphic):
+        for x in range(0, len(graphic["frame_offsets"])-1, 2):
+            x1 = graphic["frame_offsets"][x]
+            x2 = graphic["frame_offsets"][x+1]
+
+            varString += "0x{1:04x}{0:04x},".format(
+                            x1,
+                            x2)
+        if (len(graphic["frame_offsets"]) % 2 == 1):
+            varString += "0x{1:04x}{0:04x},".format(
+                            graphic["frame_offsets"][len(graphic["frame_offsets"])-1],
+                            0)
+        
+    varString += "/* data */"
 
 
     byteCount = 0
@@ -208,7 +213,6 @@ def writeCustomBmp(graphic, path):
     if graphic["encoding"] == "span":
         encoding = 1
     # add metadata to front of array
-    f.write(str.encode("__meta__"))
     f.write(graphic["width"].to_bytes(2, byteorder='big'))
     f.write(graphic["height"].to_bytes(2, byteorder='big'))
     f.write((1 if graphic["alpha"] else 0).to_bytes(2, byteorder='big'))
@@ -219,10 +223,8 @@ def writeCustomBmp(graphic, path):
 
     if("frame_offsets" in graphic):
         for x in graphic["frame_offsets"]:
-            f.write(x.to_bytes(4, byteorder='big'))
+            f.write(x.to_bytes(2, byteorder='big'))
             byteCount += 1
-
-    f.write(str.encode("__data__"))
 
     byteCount = 0
     

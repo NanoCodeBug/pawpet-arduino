@@ -7,7 +7,7 @@
 // #define SAMD21 1
 // #include <Adafruit_SleepyDog.h>
 
-#define PETPIC(x) x, x##_meta
+// #define PETPIC(x) x, x##_meta
 
 typedef const uint32_t image_t;
 typedef const uint16_t meta_t;
@@ -16,17 +16,16 @@ struct ImageMeta
 {
     uint16_t width;
     uint16_t height;
-    uint16_t alpha;         // has alpha channel
-    uint16_t encoding;      // true: span encoded, false: bitmap
-    uint16_t tileCount;     // number of tiles
-    uint16_t tileOffsets;
+    uint16_t alpha;     // has alpha channel
+    uint16_t encoding;  // true: span encoded, false: bitmap
+    uint16_t tileCount; // number of tiles
 };
 
 struct PetImage
 {
-    ImageMeta* meta;
-    uint16_t * tileOffsets; // array of offsets to start of each tile
-    uint32_t * data;
+    ImageMeta *meta;
+    uint16_t *tileOffsets; // array of offsets to start of each tile
+    uint32_t *data;
 };
 
 #define PET_WHITE 0

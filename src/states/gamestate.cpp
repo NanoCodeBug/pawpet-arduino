@@ -121,11 +121,11 @@ void TestGame1::draw(PetDisplay *disp)
     disp->println("test game 1");
     for (int s = 0; s < 8; s++)
     {
-        disp->drawFrame(PETPIC(icons), fallingObjs[s].x * 8, fallingObjs[s].y, 0);
+        disp->drawFrame(icons, fallingObjs[s].x * 8, fallingObjs[s].y, 0);
     }
 
-    disp->drawFrame(PETPIC(icons), paddleX * 8, 64, 11);
-    disp->drawFrame(PETPIC(icons), (paddleX + 1) * 8, 64, 11);
+    disp->drawFrame(icons, paddleX * 8, 64, 11);
+    disp->drawFrame(icons, (paddleX + 1) * 8, 64, 11);
 }
 
 StatsState::StatsState() : GameState(3)
@@ -201,7 +201,7 @@ void AnimationTest::draw(PetDisplay *disp)
     disp->setCursor(0, 8);
     disp->setTextColor(PET_BLACK);
 
-    disp->drawFrame(PETPIC(pet_sit), 0, 8, curFrame);
+    disp->drawFrame(pet_sit, 0, 8, curFrame);
 }
 
 SleepScreen::SleepScreen() : GameState(5)
@@ -224,5 +224,5 @@ GameState *SleepScreen::update()
 
 void SleepScreen::draw(PetDisplay *disp)
 {
-    disp->drawImage(PETPIC(sleeptest), 0, 0);
+    disp->drawImage(sleeptest, 0, 0);
 }
