@@ -6,6 +6,12 @@
 #include "../graphics/graphics.h"
 #include "../sounds/pitches.h"
 
+struct Point2D
+{
+    int16_t x;
+    int16_t y;
+};
+
 class GameState
 {
   public:
@@ -42,6 +48,7 @@ class TestGame1 : public GameState
 
     Point2D fallingObjs[8];
     uint8_t paddleX;
+    PetSprite _icons;
 
     TestGame1();
 
@@ -67,6 +74,7 @@ class AnimationTest : public GameState
     uint32_t curFrame;
     uint32_t curTick;
     bool dir;
+    PetAnimation petSit;
     // uint32_t* testImage;
     // uint16_t* testMeta;
 
@@ -79,6 +87,8 @@ class SleepScreen : public GameState
 {
   public:
     SleepScreen();
+
+    PetSprite pm;
 
     GameState *update() override;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "gamestate.h"
+#include <Adafruit_SleepyDog.h>
 
 GameState *MenuState::update()
 {
@@ -25,7 +26,7 @@ GameState *MenuState::update()
             return new AnimationTest();
             break;
 
-        case 2: 
+        case 2:
             return new SleepScreen();
             break;
 
@@ -70,7 +71,7 @@ void MenuState::draw(PetDisplay *disp)
     }
 }
 
-TestGame1::TestGame1() : GameState(2)
+TestGame1::TestGame1() : GameState(2), _icons(icons)
 {
     score = 0;
     paddleX = 0;
@@ -121,11 +122,11 @@ void TestGame1::draw(PetDisplay *disp)
     disp->println("test game 1");
     for (int s = 0; s < 8; s++)
     {
-        disp->drawFrame(icons, fallingObjs[s].x * 8, fallingObjs[s].y, 0);
+        _icons.draw(disp, fallingObjs[s].x * 8, fallingObjs[s].y, 0);
     }
 
-    disp->drawFrame(icons, paddleX * 8, 64, 11);
-    disp->drawFrame(icons, (paddleX + 1) * 8, 64, 11);
+    _icons.draw(disp, paddleX * 8, 54, 11);
+    _icons.draw(disp, (paddleX + 1) * 8, 54, 11);
 }
 
 StatsState::StatsState() : GameState(3)
@@ -154,14 +155,46 @@ void StatsState::draw(PetDisplay *disp)
     disp->printf(" %02u%% %3uv\n", ramUsage, Util::batteryLevel());
     disp->printf(" %uMB %s\n", g::g_stats.flashSize / 1024 / 1024, g::g_stats.filesysFound ? "FAT" : "N/A");
     disp->printf(" %s\n", BUILD_STRING);
+
+    uint8_t cause = Watchdog.resetCause();
+    switch (cause)
+    {
+    case 0x1:
+        disp->printf(" %s", "POR");
+        break;
+    case 0x2:
+        disp->printf(" %s", "BOD12");
+        break;
+    case 0x4:
+        disp->printf(" %s", "BOD33");
+        break;
+    case 0x8:
+        disp->printf(" %s", "bit4");
+        break;
+    case 0x10:
+        disp->printf(" %s", "EXT");
+        break;
+    case 0x20:
+        disp->printf(" %s", "WDT");
+        break;
+    case 0x40:
+        disp->printf(" %s", "SYST");
+        break;
+    case 0x80:
+        disp->printf(" %s", "bit8");
+        break;
+    }
 }
 
-AnimationTest::AnimationTest() : GameState(4)
+AnimationTest::AnimationTest() : GameState(4), petSit(pet_sit)
 {
     tick = k_tickTime15;
     curFrame = 0;
     curTick = 0;
     dir = true;
+    petSit.loopType = 2;
+    petSit.ticksPerFrame = 15;
+    // GraphicCache::LoadGraphic("pet_sit", &pm);
 }
 
 GameState *AnimationTest::update()
@@ -171,27 +204,7 @@ GameState *AnimationTest::update()
         return new MenuState();
     }
 
-    curTick += tick;
-
-    if (curTick > tick * 2)
-    {
-        curTick = 0;
-        if (dir)
-        {
-            curFrame++;
-            redraw = true;
-        }
-        else if (!dir)
-        {
-            curFrame--;
-            redraw = true;
-        }
-
-        if (curFrame <= 0 || curFrame >= 3)
-        {
-            dir = !dir;
-        }
-    }
+    redraw |= petSit.update(tick);
 
     return this;
 }
@@ -201,10 +214,10 @@ void AnimationTest::draw(PetDisplay *disp)
     disp->setCursor(0, 8);
     disp->setTextColor(PET_BLACK);
 
-    disp->drawFrame(pet_sit, 0, 8, curFrame);
+    petSit.draw(disp, 0, 8);
 }
 
-SleepScreen::SleepScreen() : GameState(5)
+SleepScreen::SleepScreen() : GameState(5), pm("sleeptest")
 {
     tick = k_tickTime30;
 }
@@ -224,5 +237,5 @@ GameState *SleepScreen::update()
 
 void SleepScreen::draw(PetDisplay *disp)
 {
-    disp->drawImage(sleeptest, 0, 0);
+    pm.draw(disp, 0, 0);
 }

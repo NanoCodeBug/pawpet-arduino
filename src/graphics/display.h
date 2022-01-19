@@ -67,13 +67,13 @@ class PetDisplay : public Adafruit_GFX
   public:
     void fillDisplayBuffer(uint8_t color = PET_WHITE);
 
-    void drawFrame(image_t *image, uint8_t dx, uint8_t dy, uint8_t frame = 0, uint8_t off_color = PET_WHITE,
+    void drawFrame(image_t& pi, uint8_t dx, uint8_t dy, uint8_t frame = 0, uint8_t off_color = PET_WHITE,
                    uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
-    inline void drawImage(image_t *image, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
+    inline void drawImage(image_t& pi, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
                           uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR)
     {
-        drawFrame(image, dx, dy, 0, off_color, on_color, alpha_color);
+        drawFrame(pi, dx, dy, 0, off_color, on_color, alpha_color);
     }
 
     inline void setPixel(uint8_t x, uint8_t y, uint8_t c)
@@ -97,15 +97,15 @@ class PetDisplay : public Adafruit_GFX
         _drawBuffer[(y * WIDTH + x) / 8] = pgm_read_byte(data);
     }
 
-    void drawSpanMap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+    void drawSpanMap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                      uint8_t off_color = PET_WHITE, uint8_t on_color = PET_BLACK);
 
-    void drawSpanMapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+    void drawSpanMapA(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                       uint8_t off_color = PET_WHITE, uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
-    void drawBitmap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+    void drawBitmap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                     uint8_t off_color = PET_WHITE, uint8_t on_color = PET_BLACK);
 
-    void drawBitmapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+    void drawBitmapA(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                      uint8_t off_color = PET_WHITE, uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 };

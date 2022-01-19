@@ -1,4 +1,5 @@
 #include <Adafruit_SPIFlash.h>
+#include <Adafruit_SleepyDog.h>
 #include <Adafruit_TinyUSB.h>
 #include <Arduino.h>
 #include <FatLib/FatFileSystem.h>
@@ -128,6 +129,7 @@ void setup(void)
     nextSleepTime = 40000;
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
+    Watchdog.enable(2000);
 }
 
 uint32_t sleepTicks = 0;
@@ -147,6 +149,8 @@ uint16_t requestedFpsSleep = k_30_fpsSleepMs;
 bool dirtyFrameBuffer = false;
 void loop(void)
 {
+    Watchdog.reset();
+
     //// UPDATE ////
     keysPressed |= readButtons();
 
@@ -209,18 +213,17 @@ void loop(void)
             dirtyFrameBuffer = true;
             currentState->redraw = false;
         }
-        
+
         // display is done with dma transfer, approx 9ms
         if (!display.isFrameLocked())
         {
             if (dirtyFrameBuffer)
             {
                 dirtyFrameBuffer = false;
-                
+
                 d1 = millis() - t1;
                 peakDrawTime = (d1 > peakDrawTime) ? d1 : peakDrawTime;
                 display.refresh();
-                
             }
         }
         // display was still refreshing when next refresh was requested
@@ -233,6 +236,12 @@ void loop(void)
         prevKeysPressed = keysPressed;
         keysPressed = 0;
     }
+    else
+    {
+        // skipped update + draw
+        // sleep by amount remaining until next frame update?
+        // would drop inputs though... sleep by some reasonable polling increment?
+    }
 
     //// SLEEP ////
     if (currentTimeMs >= nextSleepTime)
@@ -243,7 +252,10 @@ void loop(void)
         // BUG: on reset after sleep flash doesn't show up until second reset
         // flashTransport.runCommand(0xB9); // deep sleep
 
+        Watchdog.disable();
         LowPower.deepSleep(k_sleepTimeMs);
+        Watchdog.enable(2000);
+
         buttonWakeup = false;
 
         if (!buttonWakeup)

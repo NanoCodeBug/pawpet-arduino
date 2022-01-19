@@ -7,25 +7,22 @@
 // #define SAMD21 1
 // #include <Adafruit_SleepyDog.h>
 
-// #define PETPIC(x) x, x##_meta
-
-typedef const uint32_t image_t;
-typedef const uint16_t meta_t;
-
-struct ImageMeta
+struct meta_t
 {
     uint16_t width;
     uint16_t height;
     uint16_t alpha;     // has alpha channel
     uint16_t encoding;  // true: span encoded, false: bitmap
     uint16_t tileCount; // number of tiles
+    uint16_t _unused;
+    // ALWAYS KEEP 4 BYTE MULTIPLE
 };
 
-struct PetImage
+struct image_t
 {
-    ImageMeta *meta;
-    uint16_t *tileOffsets; // array of offsets to start of each tile
-    uint32_t *data;
+    meta_t *meta = NULL;
+    uint16_t *tileOffsets = NULL; // array of offsets to start of each tile
+    uint32_t *data = NULL;
 };
 
 #define PET_WHITE 0
@@ -61,7 +58,6 @@ class Util
         ADC->REFCTRL.bit.REFSEL = ADC_REFCTRL_REFSEL_INT1V_Val; // 1.0V voltage reference
 
         float vbat = analogRead(PIN_VBAT);
-        // return (int)vbat;
         vbat *= 2;      // we divided by 2, so multiply back
         vbat *= 2.0;    // Multiply by 2.0V, our reference voltage
         vbat /= 4096.0; // convert to voltage
@@ -73,10 +69,4 @@ class Util
         char stack_dummy = 0;
         return &stack_dummy - reinterpret_cast<char *>(sbrk(0));
     }
-};
-
-struct Point2D
-{
-    int16_t x;
-    int16_t y;
 };

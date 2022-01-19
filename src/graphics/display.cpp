@@ -287,56 +287,48 @@ bool PetDisplay::refresh(void)
     return true;
 }
 
-void PetDisplay::drawFrame(image_t *image, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color, uint8_t on_color,
+void PetDisplay::drawFrame(image_t& pm, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color, uint8_t on_color,
                            uint8_t alpha_color)
 {
-    PetImage pm;
-    pm.meta = (ImageMeta *)image;
-    pm.tileOffsets = (uint16_t *)(image + (sizeof(ImageMeta) + 2) / 4);
-
-    // round up to next even number
-    uint16_t endOfOffsets = pm.meta->tileCount + (pm.meta->tileCount % 2);
-
-    pm.data = (uint32_t *)(pm.tileOffsets + endOfOffsets);
-
     if (frame >= pm.meta->tileCount)
     {
         return;
     }
 
+    uint32_t * data = pm.data + pm.tileOffsets[frame];
+
     if (pm.meta->encoding)
     {
         // supposed to contain array of locations of start of each span encoded frame
-        pm.data += pm.tileOffsets[frame];
         if (pm.meta->alpha)
         {
-            drawSpanMapA(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
+            drawSpanMapA(data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
         }
         else
         {
-            drawSpanMap(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
+            drawSpanMap(data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
         }
     }
 
     // move bitmap to point to start of image
     // frames are not packed into eachother
-    // for tiles 4 bytes per image_t, 16 pixels alpha, 32 pixels b/w
+    // for tiles 4 bytes per uint32_t, 16 pixels alpha, 32 pixels b/w
     else
     {
         if (pm.meta->alpha)
         {
-            pm.data += (pm.meta->width * pm.meta->height) / 16 * frame;
-            drawBitmapA(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
+            // pm.data += (pm.meta->width * pm.meta->height) / 16 * frame;
+            drawBitmapA(data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color, alpha_color);
         }
         else
         {
-            pm.data += (pm.meta->width * pm.meta->height) / 32 * frame;
-            drawBitmap(pm.data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
+            // pm.data += (pm.meta->width * pm.meta->height) / 32 * frame;
+            drawBitmap(data, pm.meta->width, pm.meta->height, dx, dy, off_color, on_color);
         }
     }
 }
 
-void PetDisplay::drawSpanMap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+void PetDisplay::drawSpanMap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                              uint8_t off_color, uint8_t on_color)
 {
     const uint32_t bitmapLength = width * height;
@@ -378,7 +370,7 @@ void PetDisplay::drawSpanMap(image_t *bitmap, const uint8_t width, const uint8_t
         }
     }
 }
-void PetDisplay::drawSpanMapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+void PetDisplay::drawSpanMapA(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                               uint8_t off_color, uint8_t on_color, uint8_t alpha_color)
 {
     const uint32_t bitmapLength = width * height;
@@ -426,7 +418,7 @@ void PetDisplay::drawSpanMapA(image_t *bitmap, const uint8_t width, const uint8_
     }
 }
 
-void PetDisplay::drawBitmap(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+void PetDisplay::drawBitmap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                             uint8_t off_color, uint8_t on_color)
 {
     // 32 pixels per uint32_t
@@ -464,7 +456,7 @@ void PetDisplay::drawBitmap(image_t *bitmap, const uint8_t width, const uint8_t 
     }
 }
 
-void PetDisplay::drawBitmapA(image_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
+void PetDisplay::drawBitmapA(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                              uint8_t off_color, uint8_t on_color, uint8_t alpha_color)
 {
     // 16 pixels per uint32_t

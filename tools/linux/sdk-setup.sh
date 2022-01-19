@@ -16,6 +16,6 @@ $TOOLSPATH/arduino-cli core update-index
 $TOOLSPATH/arduino-cli core install arduino:samd 
 $TOOLSPATH/arduino-cli core install adafruit:samd
 
-$TOOLSPATH/arduino-cli lib install RTCZero "Arduino Low Power" "Adafruit GFX Library" "Adafruit BusIO" "Adafruit SPIFlash" "SdFat - Adafruit Fork" "Adafruit TinyUSB Library" "Adafruit Zero DMA Library"
+$TOOLSPATH/arduino-cli lib install RTCZero "Arduino Low Power" "Adafruit GFX Library" "Adafruit BusIO" "Adafruit SPIFlash" "SdFat - Adafruit Fork" "Adafruit TinyUSB Library" "Adafruit Zero DMA Library" "Adafruit SleepyDog Library"
 
 #arduino-cli compile --fqbn adafruit:samd:adafruit_feather_m0:usbstack=tinyusb,debug=on,opt=small pawos.ino

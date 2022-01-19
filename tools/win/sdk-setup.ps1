@@ -12,7 +12,7 @@ Invoke-Expression "$arduinoCli core update-index"
 Invoke-Expression "$arduinoCli core install arduino:samd"
 Invoke-Expression "$arduinoCli core install adafruit:samd"
 
-Invoke-Expression "$arduinoCli lib install RTCZero `"Arduino Low Power`" `"Adafruit GFX Library`" `"Adafruit BusIO`" `"Adafruit SPIFlash`" `"SdFat - Adafruit Fork`" `"Adafruit Zero DMA Library`""
+Invoke-Expression "$arduinoCli lib install RTCZero `"Arduino Low Power`" `"Adafruit GFX Library`" `"Adafruit BusIO`" `"Adafruit SPIFlash`" `"SdFat - Adafruit Fork`" `"Adafruit Zero DMA Library`" `"Adafruit SleepyDog Library`""
 
 Invoke-Expression "$arduinoCli lib install ZeroRegs"
 

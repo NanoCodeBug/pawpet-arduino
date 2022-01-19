@@ -2,40 +2,46 @@
 #include <FatLib/ArduinoFiles.h>
 #include <FatLib/FatFileSystem.h>
 
-GraphicCache::GraphicCache()
-{
-}
-
-bool GraphicCache::LoadGraphic(const char *name, PetImage **loadedImage)
+bool PetSprite::LoadFromFlash(const char *name, image_t *image)
 {
     char *fname = new char[strlen(name) + 5];
     strcpy(fname, name);
     strcat(fname, ".paw");
     File dataFile = g::g_fatfs->open(fname, FILE_READ);
 
-    PetImage *image = new PetImage;
-    image->meta = new ImageMeta;
-    ImageMeta *meta = image->meta;
+    image->meta = new meta_t;
+    meta_t *meta = image->meta;
 
     if (!dataFile)
     {
         return false;
     }
 
-    dataFile.seek(8); // __meta__
-    meta->width = (dataFile.read() << 8 | dataFile.read());
     meta->height = (dataFile.read() << 8 | dataFile.read());
-    meta->alpha = (dataFile.read() << 8 | dataFile.read());
+    meta->width = (dataFile.read() << 8 | dataFile.read());
+
     meta->encoding = (dataFile.read() << 8 | dataFile.read());
+    meta->alpha = (dataFile.read() << 8 | dataFile.read());
+
+    dataFile.read();
+    dataFile.read();
     meta->tileCount = (dataFile.read() << 8 | dataFile.read());
 
     image->tileOffsets = new uint16_t[meta->tileCount];
-    for (int s = 0; s < meta->tileCount; s++)
+    for (int s = 0; s < meta->tileCount; s += 2)
     {
+        if (s + 1 < meta->tileCount)
+        {
+            image->tileOffsets[s + 1] = (dataFile.read() << 8 | dataFile.read());
+        }
+        else
+        {
+            dataFile.read();
+            dataFile.read();
+        }
+
         image->tileOffsets[s] = (dataFile.read() << 8 | dataFile.read());
     }
-
-    dataFile.seekCur(8); //__data__
 
     uint32_t totalImageSize = dataFile.available() / 4;
     image->data = new uint32_t[totalImageSize];
@@ -51,6 +57,7 @@ bool GraphicCache::LoadGraphic(const char *name, PetImage **loadedImage)
 
         image->data[index++] = (c1 << 24 | c2 << 16 | c3 << 8 | c4);
     }
+    dataFile.close();
 
     return true;
 }
