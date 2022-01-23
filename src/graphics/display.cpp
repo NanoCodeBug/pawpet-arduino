@@ -1,6 +1,8 @@
 
 #include "display.h"
 
+#include <wiring_private.h>
+
 volatile bool PetDisplay::_dma_complete = true;
 
 #ifndef _swap_int16_t
@@ -21,11 +23,31 @@ volatile bool PetDisplay::_dma_complete = true;
     }
 #endif
 
+// #define TOGGLE_VCOM                                                                                                    \
+//     do                                                                                                                 \
+//     {                                                                                                                  \
+//         _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
+//         _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
+//     } while (0);
+
+// #define TOGGLE_VCOM                                                                                                    \
+//     do                                                                                                                 \
+//     {                                                                                                                  \
+//         _vcom_manual = !_vcom_manual;                                                                                  \
+//         if (_vcom_manual)                                                                                              \
+//         {                                                                                                              \
+//             digitalWrite(DISP_COMIN, LOW);                                                                             \
+//         }                                                                                                              \
+//         else                                                                                                           \
+//         {                                                                                                              \
+//             digitalWrite(DISP_COMIN, HIGH);                                                                            \
+//         }                                                                                                              \
+//                                                                                                                        \
+//     } while (0);
+
 #define TOGGLE_VCOM                                                                                                    \
     do                                                                                                                 \
     {                                                                                                                  \
-        _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
-        _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
     } while (0);
 
 /**
@@ -51,6 +73,8 @@ PetDisplay::PetDisplay(SPIClass *spi, uint8_t cs, uint16_t width, uint16_t heigh
  */
 boolean PetDisplay::begin(void)
 {
+    _vcom_manual = 0;
+
     if (!_spi->begin())
     {
         return false;
@@ -104,10 +128,39 @@ boolean PetDisplay::begin(void)
 
     _dma.setCallback(PetDisplay::dma_callback);
 
+    // divider, linear or 2^(.DIV+1) 0-127, 2^18 = 30hz for 8mhz oscilator
+    GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(17);
+
+    // setup Clock Generator
+    // GCLK_GENCTRL_Type genctrl = {};
+    // genctrl.bit.RUNSTDBY = 1; // Run in Standby
+    // genctrl.bit.DIVSEL = 1;   // .DIV (above) Selection: 0=linear 1=powers of 2
+    // genctrl.bit.OE = 1;  // Output Enable to observe on a port pin
+    // genctrl.bit.OOV = 1; // Output Off Value
+    // genctrl.bit.IDC = 1; // Improve Duty Cycle
+    // genctrl.bit.GENEN = 1;    // enable this GCLK
+    // genctrl.bit.SRC = GCLK_SOURCE_OSC8M;
+    // genctrl.bit.ID = (uint8_t)4; // GCLK_GENERATOR_X
+
+    // GCLK->GENCTRL.reg = genctrl.reg;
+
+    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSC8M | GCLK_GENCTRL_DIVSEL |
+                        GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_OE; // GCLK_GENCTRL_IDC
+
+    while (GCLK->STATUS.bit.SYNCBUSY) {};
+
+    // GCLK->CLKCTRL.reg =
+    //   GCLK_CLKCTRL_ID_ | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK4;
+
+    // PORT->Group[0].PMUX[10 / 2].reg |= (uint8_t)PORT_PMUX_PMUXE(MUX_PA10H_GCLK_IO4); // enable port function H (glck)
+    // PORT->Group[0].PINCFG[10].reg = (uint8_t)(PORT_PINCFG_PMUXEN | PORT_PINCFG_DRVSTR);
+
+    pinPeripheral(DISP_COMIN, PIO_AC_CLK);
+
     return true;
 }
 
-// 1<<n is a costly operation on AVR -- table usu. smaller & faster
+// 1 << n is a costly operation on AVR -- table usu. smaller & faster
 static const uint8_t PROGMEM set[] = {1, 2, 4, 8, 16, 32, 64, 128},
                              clr[] = {(uint8_t)~1,  (uint8_t)~2,  (uint8_t)~4,  (uint8_t)~8,
                                       (uint8_t)~16, (uint8_t)~32, (uint8_t)~64, (uint8_t)~128};
@@ -287,7 +340,7 @@ bool PetDisplay::refresh(void)
     return true;
 }
 
-void PetDisplay::drawFrame(image_t& pm, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color, uint8_t on_color,
+void PetDisplay::drawFrame(image_t &pm, uint8_t dx, uint8_t dy, uint8_t frame, uint8_t off_color, uint8_t on_color,
                            uint8_t alpha_color)
 {
     if (frame >= pm.meta->tileCount)
@@ -295,7 +348,7 @@ void PetDisplay::drawFrame(image_t& pm, uint8_t dx, uint8_t dy, uint8_t frame, u
         return;
     }
 
-    uint32_t * data = pm.data + pm.tileOffsets[frame];
+    uint32_t *data = pm.data + pm.tileOffsets[frame];
 
     if (pm.meta->encoding)
     {

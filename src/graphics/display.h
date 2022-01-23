@@ -58,6 +58,7 @@ class PetDisplay : public Adafruit_GFX
     Adafruit_SPIDevice *_spi = NULL;
     uint8_t _cs;
     uint8_t _sharpmem_vcom;
+    uint8_t _vcom_manual;
 
     Adafruit_ZeroDMA _dma;
 
@@ -67,10 +68,10 @@ class PetDisplay : public Adafruit_GFX
   public:
     void fillDisplayBuffer(uint8_t color = PET_WHITE);
 
-    void drawFrame(image_t& pi, uint8_t dx, uint8_t dy, uint8_t frame = 0, uint8_t off_color = PET_WHITE,
+    void drawFrame(image_t &pi, uint8_t dx, uint8_t dy, uint8_t frame = 0, uint8_t off_color = PET_WHITE,
                    uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR);
 
-    inline void drawImage(image_t& pi, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
+    inline void drawImage(image_t &pi, uint8_t dx, uint8_t dy, uint8_t off_color = PET_WHITE,
                           uint8_t on_color = PET_BLACK, uint8_t alpha_color = PET_CLEAR)
     {
         drawFrame(pi, dx, dy, 0, off_color, on_color, alpha_color);

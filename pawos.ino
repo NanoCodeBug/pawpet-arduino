@@ -1,5 +1,4 @@
 #include <Adafruit_SPIFlash.h>
-#include <Adafruit_SleepyDog.h>
 #include <Adafruit_TinyUSB.h>
 #include <Arduino.h>
 #include <FatLib/FatFileSystem.h>
@@ -14,6 +13,9 @@
 #include "src/config.h"
 #include "src/global.h"
 #include "src/states/gamestate.h"
+#include "src/lib/PawPet_SleepyDog.h"
+
+// #define DEBUG 1
 
 #ifdef DEBUG
 #include <ZeroRegs.h>
@@ -55,7 +57,10 @@ void setup(void)
 {
     // power management
     disableUnusedClocks();
-
+    
+    // pinPeripheral(DISP_COMIN, PIO_DIGITAL);
+    // pinMode(DISP_COMIN, OUTPUT);
+    
     // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);
@@ -78,6 +83,8 @@ void setup(void)
 
     analogReadResolution(12);
     pinMode(PIN_VBAT, INPUT);
+    pinPeripheral(PIN_VMON_EN, PIO_DIGITAL);
+    pinMode(PIN_VMON_EN, OUTPUT);
 
     flashSPI.begin();
     pinPeripheral(FLASH_MISO, PIO_SERCOM);
@@ -253,7 +260,8 @@ void loop(void)
         // flashTransport.runCommand(0xB9); // deep sleep
 
         Watchdog.disable();
-        LowPower.deepSleep(k_sleepTimeMs);
+        // LowPower.deepSleep(k_sleepTimeMs);
+        Watchdog.sleep(k_sleepTimeMs);
         Watchdog.enable(2000);
 
         buttonWakeup = false;

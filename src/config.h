@@ -15,7 +15,7 @@ const unsigned char BUILD_STRING[]{__TIME__[0], __TIME__[1], __TIME__[3], __TIME
 
 #if defined(M0_VER_5) || defined(M0_VER_6)
 // 0 RX
-// 1 TX
+#define DISP_COMIN 1 // PORTA, 10
 #define FLASH_MISO 2 // PORTA, 14
 #define FLASH_SCK 3  // PORTA, 9
 #define FLASH_MOSI 4 // PORTA, 8
@@ -31,7 +31,7 @@ const unsigned char BUILD_STRING[]{__TIME__[0], __TIME__[1], __TIME__[3], __TIME
 // 14 A0
 #define PIN_BEEPER 15 // A1
 // 16 A2
-// 17 A3
+#define PIN_VMON_EN 17 // A3
 // 18 A4
 #define PIN_UP 19     // A5
                       // SDA 20 no pullup?

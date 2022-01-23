@@ -1,6 +1,6 @@
 #pragma once
 #include "gamestate.h"
-#include <Adafruit_SleepyDog.h>
+#include "../lib/PawPet_SleepyDog.h"
 
 GameState *MenuState::update()
 {

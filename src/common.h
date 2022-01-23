@@ -5,7 +5,6 @@
 
 // #define UF2_DEFINE_HANDOVER 1
 // #define SAMD21 1
-// #include <Adafruit_SleepyDog.h>
 
 struct meta_t
 {
@@ -57,10 +56,14 @@ class Util
         ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2_Val;  // Gain Factor Selection
         ADC->REFCTRL.bit.REFSEL = ADC_REFCTRL_REFSEL_INT1V_Val; // 1.0V voltage reference
 
+        digitalWrite(PIN_VMON_EN, LOW);
+
         float vbat = analogRead(PIN_VBAT);
         vbat *= 2;      // we divided by 2, so multiply back
         vbat *= 2.0;    // Multiply by 2.0V, our reference voltage
         vbat /= 4096.0; // convert to voltage
+
+        digitalWrite(PIN_VMON_EN, HIGH);
         return vbat * 100;
     }
 
