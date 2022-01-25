@@ -5,6 +5,22 @@
 
 class WatchdogSAMD {
 public:
+
+  enum PawPet_WatchDog_Times {
+    WATCHDOG_TIMER_64_MS = 0x0,
+    WATCHDOG_TIMER_128_MS = 0x1,
+    WATCHDOG_TIMER_256_MS = 0x2,
+    WATCHDOG_TIMER_512_MS = 0x3,
+    WATCHDOG_TIMER_1_S = 0x4,
+    WATCHDOG_TIMER_2_S = 0x5,
+    WATCHDOG_TIMER_4_S = 0x6,
+    WATCHDOG_TIMER_8_S = 0x7,
+    WATCHDOG_TIMER_16_S = 0x8,
+    WATCHDOG_TIMER_32_S = 0x9,
+    WATCHDOG_TIMER_64_S = 0xA,
+    WATCHDOG_TIMER_128_S = 0xB
+  };
+
   WatchdogSAMD() : _initialized(false) {}
 
   // Enable the watchdog timer to reset the machine after a period of time
@@ -17,7 +33,7 @@ public:
   //
   // The actual period (in milliseconds) before a watchdog timer reset is
   // returned.
-  int enable(int maxPeriodMS = 0, bool isForSleep = false);
+  void enable(uint8_t bits, bool isForSleep = false);
 
   // Reset or 'kick' the watchdog timer to prevent a reset of the device.
   void reset();
@@ -35,7 +51,7 @@ public:
   //
   // The actual period (in milliseconds) that the hardware was asleep will be
   // returned.
-  int sleep(int maxPeriodMS = 0);
+  void sleep(uint8_t bits = 0);
 
 private:
   void _initialize_wdt();

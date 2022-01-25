@@ -121,6 +121,10 @@ void setup(void)
     delay(500);
     USBDevice.attach();
 
+
+    // Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
+    // Watchdog.disable();
+
 #ifdef DEBUG
     Serial.begin(9600);
 
@@ -136,8 +140,9 @@ void setup(void)
     nextSleepTime = 40000;
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
-    Watchdog.enable(2000);
+    Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 }
+
 
 uint32_t sleepTicks = 0;
 uint8_t keysPressed = 0;
@@ -261,8 +266,8 @@ void loop(void)
 
         Watchdog.disable();
         // LowPower.deepSleep(k_sleepTimeMs);
-        Watchdog.sleep(k_sleepTimeMs);
-        Watchdog.enable(2000);
+        Watchdog.sleep(WatchdogSAMD::WATCHDOG_TIMER_64_S);
+        Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 
         buttonWakeup = false;
 

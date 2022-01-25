@@ -92,11 +92,11 @@ void ArduinoLowPowerClass::attachInterruptWakeup(uint32_t pin, voidFuncPtr callb
     while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     GCLK->GENCTRL.reg =
-        (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(2)); // source for GCLK2 is OSCULP32K
+        (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_RUNSTDBY); // source for GCLK2 is OSCULP32K
     while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
 
-    GCLK->GENCTRL.bit.RUNSTDBY = 1; // GCLK2 run standby
-    while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+    // GCLK->GENCTRL.bit.RUNSTDBY = 1; // GCLK2 run standby
+    // while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
 
     // Enable wakeup capability on pin in case being used during sleep
     EIC->WAKEUP.reg |= (1 << in);

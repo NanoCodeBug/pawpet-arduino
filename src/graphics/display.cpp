@@ -23,12 +23,12 @@ volatile bool PetDisplay::_dma_complete = true;
     }
 #endif
 
-// #define TOGGLE_VCOM                                                                                                    \
-//     do                                                                                                                 \
-//     {                                                                                                                  \
-//         _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
-//         _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
-//     } while (0);
+#define TOGGLE_VCOM                                                                                                    \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
+        _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
+    } while (0);
 
 // #define TOGGLE_VCOM                                                                                                    \
 //     do                                                                                                                 \
@@ -45,10 +45,10 @@ volatile bool PetDisplay::_dma_complete = true;
 //                                                                                                                        \
 //     } while (0);
 
-#define TOGGLE_VCOM                                                                                                    \
-    do                                                                                                                 \
-    {                                                                                                                  \
-    } while (0);
+// #define TOGGLE_VCOM                                                                                                    \
+//     do                                                                                                                 \
+//     {                                                                                                                  \
+//     } while (0);
 
 /**
  * @brief Construct a new PetDisplay object with hardware SPI
@@ -128,24 +128,10 @@ boolean PetDisplay::begin(void)
 
     _dma.setCallback(PetDisplay::dma_callback);
 
-    // divider, linear or 2^(.DIV+1) 0-127, 2^18 = 30hz for 8mhz oscilator
-    GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(17);
+    GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(8);
 
-    // setup Clock Generator
-    // GCLK_GENCTRL_Type genctrl = {};
-    // genctrl.bit.RUNSTDBY = 1; // Run in Standby
-    // genctrl.bit.DIVSEL = 1;   // .DIV (above) Selection: 0=linear 1=powers of 2
-    // genctrl.bit.OE = 1;  // Output Enable to observe on a port pin
-    // genctrl.bit.OOV = 1; // Output Off Value
-    // genctrl.bit.IDC = 1; // Improve Duty Cycle
-    // genctrl.bit.GENEN = 1;    // enable this GCLK
-    // genctrl.bit.SRC = GCLK_SOURCE_OSC8M;
-    // genctrl.bit.ID = (uint8_t)4; // GCLK_GENERATOR_X
-
-    // GCLK->GENCTRL.reg = genctrl.reg;
-
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSC8M | GCLK_GENCTRL_DIVSEL |
-                        GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_OE; // GCLK_GENCTRL_IDC
+    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL |
+                        GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_OE | GCLK_GENCTRL_IDC | GCLK_GENCTRL_OOV;
 
     while (GCLK->STATUS.bit.SYNCBUSY) {};
 

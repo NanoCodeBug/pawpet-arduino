@@ -3,7 +3,9 @@
 #include "WatchdogSAMD.h"
 #include <sam.h>
 
-int WatchdogSAMD::enable(int maxPeriodMS, bool isForSleep) {
+
+
+void WatchdogSAMD::enable(uint8_t bits, bool isForSleep) {
   // Enable the watchdog with a period up to the specified max period in
   // milliseconds.
 
@@ -11,61 +13,32 @@ int WatchdogSAMD::enable(int maxPeriodMS, bool isForSleep) {
   // http://www.atmel.com/images/atmel-42181-sam-d21_datasheet.pdf
 
   int cycles;
-  uint8_t bits;
 
   if (!_initialized)
     _initialize_wdt();
-
 
   WDT->CTRL.reg = 0; // Disable watchdog for config
   while (WDT->STATUS.bit.SYNCBUSY)
     ;
 
-  // You'll see some occasional conversion here compensating between
-  // milliseconds (1000 Hz) and WDT clock cycles (~1024 Hz).  The low-
-  // power oscillator used by the WDT ostensibly runs at 32,768 Hz with
-  // a 1:32 prescale, thus 1024 Hz, though probably not super precise.
+  // 32,768 / 256 = 128
+  // 1 / 128 =7.8125 ms per tick
+  // 8ms per tick, max number of ticks is 16384
 
-  if ((maxPeriodMS >= 16000) || !maxPeriodMS) {
-    cycles = 16384;
-    bits = 0xB;
-  } else {
-    cycles = (maxPeriodMS * 1024L + 500) / 1000; // ms -> WDT cycles
-    if (cycles >= 8192) {
-      cycles = 8192;
-      bits = 0xA;
-    } else if (cycles >= 4096) {
-      cycles = 4096;
-      bits = 0x9;
-    } else if (cycles >= 2048) {
-      cycles = 2048;
-      bits = 0x8;
-    } else if (cycles >= 1024) {
-      cycles = 1024;
-      bits = 0x7;
-    } else if (cycles >= 512) {
-      cycles = 512;
-      bits = 0x6;
-    } else if (cycles >= 256) {
-      cycles = 256;
-      bits = 0x5;
-    } else if (cycles >= 128) {
-      cycles = 128;
-      bits = 0x4;
-    } else if (cycles >= 64) {
-      cycles = 64;
-      bits = 0x3;
-    } else if (cycles >= 32) {
-      cycles = 32;
-      bits = 0x2;
-    } else if (cycles >= 16) {
-      cycles = 16;
-      bits = 0x1;
-    } else {
-      cycles = 8;
-      bits = 0x0;
-    }
-  }
+  // 0x0 8 clock cycles
+  // 0x1 16 clock cycles
+  // 0x2 32 clock cycles
+  // 0x3 64 clock cycles
+  // 0x4 128 clock cycles
+  // 0x5 256 clocks cycles
+  // 0x6 512 clocks cycles
+  // 0x7 1024 clock cycles
+  // 0x8 2048 clock cycles
+  // 0x9 4096 clock cycles
+  // 0xA 8192 clock cycles
+  // 0xB 16384 clock cycles
+
+  
 
   // Watchdog timer on SAMD is a slightly different animal than on AVR.
   // On AVR, the WTD timeout is configured in one register and then an
@@ -110,8 +83,6 @@ int WatchdogSAMD::enable(int maxPeriodMS, bool isForSleep) {
   while (WDT->STATUS.bit.SYNCBUSY)
     ;
 
-
-  return (cycles * 1000L + 512) / 1024; // WDT cycles -> ms
 }
 
 void WatchdogSAMD::reset() {
@@ -144,9 +115,9 @@ void WDT_Handler(void) {
   WDT->INTFLAG.bit.EW = 1; // Clear interrupt flag
 }
 
-int WatchdogSAMD::sleep(int maxPeriodMS) {
+void WatchdogSAMD::sleep(uint8_t bits) {
 
-  int actualPeriodMS = enable(maxPeriodMS, true); // true = for sleep
+  enable(bits, true); // true = for sleep
 
   // Enable standby sleep mode (deepest sleep) and activate.
   // Insights from Atmel ASF library.
@@ -167,20 +138,20 @@ int WatchdogSAMD::sleep(int maxPeriodMS) {
   // sleep period in the latter case...but at the very least,
   // might indicate said condition occurred by returning 0 instead
   // (assuming we can pin down which interrupt caused the wake).
-
-  return actualPeriodMS;
 }
 
 void WatchdogSAMD::_initialize_wdt() {
   // One-time initialization of watchdog timer.
   // Insights from rickrlh and rbrucemtl in Arduino forum!
 
-  // Generic clock generator 2, divisor = 32 (2^(DIV+1))
-  GCLK->GENDIV.reg = GCLK_GENDIV_ID(2) | GCLK_GENDIV_DIV(4);
-  // Enable clock generator 2 using low-power 32KHz oscillator.
-  // With /32 divisor above, this yields 1024Hz(ish) clock.
-  GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_GENEN |
+  // Generic clock generator 3, divisor = 32 (2^(DIV+1))
+  GCLK->GENDIV.reg = GCLK_GENDIV_ID(2) | GCLK_GENDIV_DIV(7);
+
+  // 32KHz /256 divisor above, this yields 125hz(ish) clock.
+  GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_RUNSTDBY |
                       GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL;
+
+  
   while (GCLK->STATUS.bit.SYNCBUSY)
     ;
   // WDT clock = clock gen 2
