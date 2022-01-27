@@ -27,6 +27,7 @@ class PawPet_FlashTransport_SPI : public Adafruit_FlashTransport
     PawPet_FlashTransport_SPI(uint8_t ss, SPIClass &spiinterface);
 
     virtual void begin(void);
+    virtual void end(void);
 
     virtual bool supportQuadMode(void)
     {

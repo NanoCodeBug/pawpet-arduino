@@ -46,11 +46,11 @@ const unsigned char BUILD_STRING[]{__TIME__[0], __TIME__[1], __TIME__[3], __TIME
 #define DISP_ROTATION 1
 #endif
 
-#define MX25R1635F                                                                                                     \
-    {                                                                                                                  \
-        .total_size = (1 << 21), /* 2 MB / 16 Mb */                                                                    \
-            .start_up_time_us = 800, .manufacturer_id = 0xc2, .memory_type = 0x28, .capacity = 0x15,                   \
-        .max_clock_speed_mhz = 33 /*8*/, .quad_enable_bit_mask = 0x40, .has_sector_protection = false,                 \
-        .supports_fast_read = true, .supports_qspi = true, .supports_qspi_writes = true,                               \
-        .write_status_register_split = false, .single_status_byte = true,                                              \
-    }
+// #define MX25R1635F                                                                                                     \
+//     {                                                                                                                  \
+//         .total_size = (1 << 21), /* 2 MB / 16 Mb */                                                                    \
+//             .start_up_time_us = 800, .manufacturer_id = 0xc2, .memory_type = 0x28, .capacity = 0x15,                   \
+//         .max_clock_speed_mhz = 33 /*8*/, .quad_enable_bit_mask = 0x40, .has_sector_protection = false,                 \
+//         .supports_fast_read = true, .supports_qspi = true, .supports_qspi_writes = true,                               \
+//         .write_status_register_split = false, .single_status_byte = true,                                              \
+//     }

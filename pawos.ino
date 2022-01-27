@@ -58,9 +58,6 @@ void setup(void)
     // power management
     disableUnusedClocks();
     
-    // pinPeripheral(DISP_COMIN, PIO_DIGITAL);
-    // pinMode(DISP_COMIN, OUTPUT);
-    
     // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);

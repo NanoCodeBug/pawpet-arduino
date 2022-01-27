@@ -1,4 +1,3 @@
-#pragma once
 #include "gamestate.h"
 #include "../lib/PawPet_SleepyDog.h"
 

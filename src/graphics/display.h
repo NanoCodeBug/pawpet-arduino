@@ -95,7 +95,7 @@ class PetDisplay : public Adafruit_GFX
   private:
     inline void setPixel8(uint8_t x, int8_t y, uint8_t data)
     {
-        _drawBuffer[(y * WIDTH + x) / 8] = pgm_read_byte(data);
+        _drawBuffer[(y * WIDTH + x) / 8] = pgm_read_byte(&data);
     }
 
     void drawSpanMap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,

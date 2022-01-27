@@ -3425,7 +3425,7 @@
     (in_bom yes) (on_board yes)
     (uuid 00000000-0000-0000-0000-00005f60ffb8)
     (property "Reference" "R2" (id 0) (at 87.63 115.6716 90))
-    (property "Value" "1k" (id 1) (at 87.63 117.983 90))
+    (property "Value" "470" (id 1) (at 87.63 117.983 90))
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (id 2) (at 87.63 120.65 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -3445,7 +3445,7 @@
     (property "Value" "Conn_ARM_JTAG_SWD_10" (id 1) (at 129.7178 107.823 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Footprint" "pawpet:ARM_JTAG" (id 2) (at 140.97 106.68 0)
+    (property "Footprint" "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical" (id 2) (at 140.97 106.68 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "http://infocenter.arm.com/help/topic/com.arm.doc.ddi0314h/DDI0314H_coresight_components_trm.pdf" (id 3) (at 132.08 138.43 90)
@@ -3991,7 +3991,7 @@
       (reference "J1") (unit 1) (value "USB4105-GF-A") (footprint "gct:GCT_USB4105-GF-A")
     )
     (path "/00000000-0000-0000-0000-00005f61e5f9"
-      (reference "J2") (unit 1) (value "Conn_ARM_JTAG_SWD_10") (footprint "pawpet:ARM_JTAG")
+      (reference "J2") (unit 1) (value "Conn_ARM_JTAG_SWD_10") (footprint "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical")
     )
     (path "/00000000-0000-0000-0000-00005f37490d"
       (reference "J3") (unit 1) (value "MOLEX") (footprint "pawpet:Molex-52892-1033-Manufacturer_Recommended_handsolder")
@@ -4006,7 +4006,7 @@
       (reference "R1") (unit 1) (value "100k") (footprint "Resistor_SMD:R_0805_2012Metric")
     )
     (path "/00000000-0000-0000-0000-00005f60ffb8"
-      (reference "R2") (unit 1) (value "1k") (footprint "Resistor_SMD:R_0805_2012Metric")
+      (reference "R2") (unit 1) (value "470") (footprint "Resistor_SMD:R_0805_2012Metric")
     )
     (path "/00000000-0000-0000-0000-00005f9e88e7"
       (reference "R3") (unit 1) (value "100k") (footprint "Resistor_SMD:R_0805_2012Metric")

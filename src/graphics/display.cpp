@@ -23,13 +23,6 @@ volatile bool PetDisplay::_dma_complete = true;
     }
 #endif
 
-#define TOGGLE_VCOM                                                                                                    \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
-        _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
-    } while (0);
-
 // #define TOGGLE_VCOM                                                                                                    \
 //     do                                                                                                                 \
 //     {                                                                                                                  \
@@ -42,13 +35,15 @@ volatile bool PetDisplay::_dma_complete = true;
 //         {                                                                                                              \
 //             digitalWrite(DISP_COMIN, HIGH);                                                                            \
 //         }                                                                                                              \
-//                                                                                                                        \
+//         _sharpmem_vcom = _sharpmem_vcom ? 0x00 : SHARPMEM_BIT_VCOM;                                                    \
+//         _drawBuffer[-1] = _sharpmem_vcom | SHARPMEM_BIT_WRITECMD;                                                      \
 //     } while (0);
 
-// #define TOGGLE_VCOM                                                                                                    \
-//     do                                                                                                                 \
-//     {                                                                                                                  \
-//     } while (0);
+
+#define TOGGLE_VCOM                                                                                                    \
+    do                                                                                                                 \
+    {                                                                                                                  \
+    } while (0);
 
 /**
  * @brief Construct a new PetDisplay object with hardware SPI
@@ -135,14 +130,14 @@ boolean PetDisplay::begin(void)
 
     while (GCLK->STATUS.bit.SYNCBUSY) {};
 
-    // GCLK->CLKCTRL.reg =
-    //   GCLK_CLKCTRL_ID_ | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK4;
-
-    // PORT->Group[0].PMUX[10 / 2].reg |= (uint8_t)PORT_PMUX_PMUXE(MUX_PA10H_GCLK_IO4); // enable port function H (glck)
-    // PORT->Group[0].PINCFG[10].reg = (uint8_t)(PORT_PINCFG_PMUXEN | PORT_PINCFG_DRVSTR);
-
     pinPeripheral(DISP_COMIN, PIO_AC_CLK);
 
+    // PORT->Group[0].PMUX[10 / 2].reg |= (uint8_t)PORT_PMUX_PMUXE(MUX_PA10H_GCLK_IO4); // enable port function H
+    // PORT->Group[0].PINCFG[10].reg = (uint8_t)(PORT_PINCFG_PMUXEN | PORT_PINCFG_DRVSTR);
+        
+    // pinPeripheral(DISP_COMIN, PIO_DIGITAL);
+    // pinMode(DISP_COMIN, OUTPUT);
+    
     return true;
 }
 
@@ -252,7 +247,9 @@ void PetDisplay::clearDisplay()
     _spi->beginTransaction();
     digitalWrite(_cs, HIGH);
 
-    uint8_t clear_data[2] = {_sharpmem_vcom | SHARPMEM_BIT_CLEAR, 0x00};
+    uint8_t clear_data[2];
+    clear_data[0] = _sharpmem_vcom | SHARPMEM_BIT_CLEAR;
+    clear_data[1] = 0x00;
     _spi->transfer(clear_data, 2);
 
     TOGGLE_VCOM;

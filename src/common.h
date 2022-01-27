@@ -28,7 +28,7 @@ struct image_t
 #define PET_BLACK 1
 #define PET_CLEAR 2
 
-#include "graphics\sprites.h"
+#include "graphics/sprites.h"
 
 enum ButtonFlags
 {

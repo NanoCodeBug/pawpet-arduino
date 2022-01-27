@@ -5,8 +5,7 @@ Arduino SDK, pin layout of board is identical to a Adafruit Feather M0.
 ## Linux Arduino SDK and Dependency Setup
 tools/linux/sdk-setup.sh
 
-<todo, linux build script>
-arduino-cli compile --fqbn adafruit:samd:adafruit_feather_m0:usbstack=tinyusb,debug=on,opt=small pawos.ino
+tools/linux/build.sh
 
 ## Windows Arduino SDK and Dependency Setup
 win/tools/sdk-setup.ps1
