@@ -10,4 +10,5 @@ GraphicCache *g_cache;
 uint32_t g_keyReleased;
 uint32_t g_keyPressed;
 stats g_stats;
-}
+RTCZero g_rtc;
+} // namespace g

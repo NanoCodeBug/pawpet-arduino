@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-
+#include <RTCZero.h>
 /**
  * Global objects and constants
  *
@@ -29,13 +29,14 @@ struct stats
     uint32_t flashSize;
     uint32_t freeSpace;
     bool filesysFound;
+    uint64_t timeSinceBoot;
 };
 
 namespace g
 {
 extern FatFileSystem *g_fatfs;
 extern GraphicCache *g_cache;
-
+extern RTCZero g_rtc;
 extern stats g_stats;
 
 extern uint32_t g_keyReleased;

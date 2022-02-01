@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <WInterrupts.h>
 #include <wiring_private.h>
+#include <RTCZero.h>
 
 #include "src/lib/ArduinoLowPower.h"
 #include "src/lib/PawPet_FlashTransport.h"
@@ -12,8 +13,8 @@
 #include "src/common.h"
 #include "src/config.h"
 #include "src/global.h"
-#include "src/states/gamestate.h"
 #include "src/lib/PawPet_SleepyDog.h"
+#include "src/states/gamestate.h"
 
 // #define DEBUG 1
 
@@ -52,12 +53,13 @@ int32_t msc_read_cb(uint32_t lba, void *buffer, uint32_t bufsize);
 int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize, uint32_t tag);
 void msc_flush_cb(void);
 bool msc_ready_cb();
+uint16_t intBat = Util::batteryLevel();
 
 void setup(void)
 {
     // power management
     disableUnusedClocks();
-    
+
     // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);
@@ -82,6 +84,7 @@ void setup(void)
     pinMode(PIN_VBAT, INPUT);
     pinPeripheral(PIN_VMON_EN, PIO_DIGITAL);
     pinMode(PIN_VMON_EN, OUTPUT);
+    digitalWrite(PIN_VMON_EN, HIGH);
 
     flashSPI.begin();
     pinPeripheral(FLASH_MISO, PIO_SERCOM);
@@ -118,7 +121,6 @@ void setup(void)
     delay(500);
     USBDevice.attach();
 
-
     // Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
     // Watchdog.disable();
 
@@ -138,8 +140,11 @@ void setup(void)
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
     Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
-}
 
+    g::g_rtc.begin();
+    g::g_rtc.setHours(0);
+    g::g_rtc.setMinute(0);
+}
 
 uint32_t sleepTicks = 0;
 uint8_t keysPressed = 0;
@@ -360,6 +365,7 @@ uint8_t readButtons()
     return inputState;
 }
 
+PetSprite _battery(battery);
 bool drawTimeAndBattery()
 {
     uint32_t elapsedTimeSeconds = currentTimeMs / 1000.0;
@@ -380,8 +386,6 @@ bool drawTimeAndBattery()
     {
         display.printf("Zz\n");
     }
-
-    uint16_t intBat = Util::batteryLevel();
 
     // 1.5*2 alk
     // 1.4*2 nimh
@@ -411,7 +415,7 @@ bool drawTimeAndBattery()
         batFrame = 4;
     }
 
-    // display.drawFrame(PETPIC(battery), 48, 0, batFrame);
+    _battery.draw(&display, 48, 0, batFrame);
     // display.drawFrame("battery", 48, 0, batFrame);
 
     return true;
