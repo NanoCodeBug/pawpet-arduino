@@ -2,10 +2,10 @@
 #include <Adafruit_TinyUSB.h>
 #include <Arduino.h>
 #include <FatLib/FatFileSystem.h>
+#include <RTCZero.h>
 #include <SPI.h>
 #include <WInterrupts.h>
 #include <wiring_private.h>
-#include <RTCZero.h>
 
 #include "src/lib/ArduinoLowPower.h"
 #include "src/lib/PawPet_FlashTransport.h"
@@ -53,10 +53,17 @@ int32_t msc_read_cb(uint32_t lba, void *buffer, uint32_t bufsize);
 int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize, uint32_t tag);
 void msc_flush_cb(void);
 bool msc_ready_cb();
-uint16_t intBat = Util::batteryLevel();
+uint16_t intBat = 300;
 
 void setup(void)
 {
+    // set nvm wait states to 3, allowing for operation down to 1.6v
+    // though display cuts out at 1.9v
+
+    // Watchdog._initialize_wdt();
+    
+    NVMCTRL->CTRLB.bit.RWS = 3;
+    
     // power management
     disableUnusedClocks();
 
@@ -143,7 +150,12 @@ void setup(void)
 
     g::g_rtc.begin();
     g::g_rtc.setHours(0);
-    g::g_rtc.setMinute(0);
+    g::g_rtc.setMinutes(0);
+    g::g_rtc.setSeconds(0);
+    g::g_rtc.setDate(1, 1, (uint8_t)2022);
+    g::g_stats.bootTime = g::g_rtc.getEpoch();
+
+    intBat = Util::batteryLevel();
 }
 
 uint32_t sleepTicks = 0;
@@ -213,6 +225,8 @@ void loop(void)
                 requestedFpsSleep = k_1_fpsSleepMs;
                 break;
             }
+
+            intBat = Util::batteryLevel();
         }
 
         t1 = millis();
@@ -260,6 +274,12 @@ void loop(void)
     //// SLEEP ////
     if (currentTimeMs >= nextSleepTime)
     {
+        intBat = Util::batteryLevel();
+
+        if(intBat < 201)
+        {
+            //disable clocks and shutdown?
+        }
         display.sync();
 
         // TODO: wakeup on flash chip not being triggered correctly
@@ -387,11 +407,27 @@ bool drawTimeAndBattery()
         display.printf("Zz\n");
     }
 
-    // 1.5*2 alk
-    // 1.4*2 nimh
-    // 2.60-2.80 full charge
-    // 2.0v discharged?
+    // 1.5*2 alk, 0.8v cutoff
+    // 1.4*2 nimh? 1.0v cutoff 
+    //
     // discharge curves are non-linear, needs tunning
+    // 2.6v >- full
+    // 2.4v >- 3/4  - nimh spends most time here
+    // 2.2v >- 2/4
+    // 2.1v >- 1/4
+    // 2.01v >- empty
+    // 2.0v < shutdown, refuse to boot, below cutoff voltage
+    // 1.9v - display will not turn on at this voltage
+    // below 2v, display battery replace logo
+    // 
+    // 2.7v - full
+    // 2.6v - 3/4
+    // 2.4v - 2/4SWS
+    // 2.2v - 1/4
+    // 2.0v - empty
+    // 1.9v - display will not turn on
+    // 1.6v cutoff, display will have already been inoperable
+
     uint8_t batFrame = 0;
 
     if (intBat > 260)
@@ -406,7 +442,7 @@ bool drawTimeAndBattery()
     {
         batFrame = 2;
     }
-    else if (intBat > 200)
+    else if (intBat > 210)
     {
         batFrame = 3;
     }
@@ -476,8 +512,8 @@ void disableUnusedClocks()
     // global clocks
 
     // Disable 8mhz GLCK 3 that bootloader has setup, unused?
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
-    while (GCLK->STATUS.bit.SYNCBUSY) {}
+    // GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
+    // while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(3);
     while (GCLK->STATUS.bit.SYNCBUSY) {}
@@ -497,8 +533,8 @@ void disableUnusedClocks()
     // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
     // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
 
-    currSet &= ~PM_APBCMASK_TCC0;
-    currSet &= ~PM_APBCMASK_TCC1;
+    // currSet &= ~PM_APBCMASK_TCC0;
+    // currSet &= ~PM_APBCMASK_TCC1;
     currSet &= ~PM_APBCMASK_TCC2;
     currSet &= ~PM_APBCMASK_TC3;
     currSet &= ~PM_APBCMASK_TC4;

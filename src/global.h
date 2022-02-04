@@ -29,7 +29,7 @@ struct stats
     uint32_t flashSize;
     uint32_t freeSpace;
     bool filesysFound;
-    uint64_t timeSinceBoot;
+    uint32_t bootTime;
 };
 
 namespace g

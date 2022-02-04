@@ -183,8 +183,8 @@ void StatsState::draw(PetDisplay *disp)
         disp->printf(" %s", "bit8");
         break;
     }
-    uint32_t minutes = millis()/1000/60;
-    disp->printf(" %um", minutes);
+    uint32_t minutes = (g::g_rtc.getEpoch() - g::g_stats.bootTime) / 60;
+    disp->printf("\n %um", minutes);
 }
 
 AnimationTest::AnimationTest() : GameState(4), petSit(pet_sit)

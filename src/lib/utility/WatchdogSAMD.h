@@ -52,9 +52,9 @@ public:
   // The actual period (in milliseconds) that the hardware was asleep will be
   // returned.
   void sleep(uint8_t bits = 0);
+  void _initialize_wdt();
 
 private:
-  void _initialize_wdt();
 
   bool _initialized;
 };
