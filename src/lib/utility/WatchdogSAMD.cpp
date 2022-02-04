@@ -158,7 +158,7 @@ void WatchdogSAMD::_initialize_wdt()
     while (GCLK->STATUS.bit.SYNCBUSY) {};
 
     // WDT clock = clock gen 3
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_ID_WDT | GCLK_CLKCTRL_GEN_GCLK3;
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK3 | GCLK_CLKCTRL_ID_WDT;
     while (GCLK->STATUS.bit.SYNCBUSY) {};
 
     // Enable WDT early-warning interrupt

@@ -63,12 +63,8 @@ void setup(void)
     // wait for serial to attach
     while (!Serial) {}
 #endif
-
-    pinMode(PIN_BEEPER, OUTPUT);
-    tone(PIN_BEEPER, NOTE_C4, 250);
-
-    // // power management
-    // disableUnusedClocks();
+    // power management
+    disableUnusedClocks();
 
     // Watchdog._initialize_wdt();
     // WDT->CTRL.reg = 0; // Disable watchdog for config
@@ -82,6 +78,9 @@ void setup(void)
     display.setRotation(DISP_ROTATION);
     display.begin();
     display.refresh();
+
+    pinMode(PIN_BEEPER, OUTPUT);
+    tone(PIN_BEEPER, NOTE_C4, 250);
 
     pinMode(PIN_BUTTON_A, INPUT_PULLUP);
     pinMode(PIN_BUTTON_B, INPUT_PULLUP);
@@ -138,12 +137,12 @@ void setup(void)
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
 
-    // g::g_rtc.begin();
-    // g::g_rtc.setHours(0);
-    // g::g_rtc.setMinutes(0);
-    // g::g_rtc.setSeconds(0);
-    // g::g_rtc.setDate(1, 1, (uint8_t)2022);
-    // g::g_stats.bootTime = g::g_rtc.getEpoch();
+    g::g_rtc.begin();
+    g::g_rtc.setHours(0);
+    g::g_rtc.setMinutes(0);
+    g::g_rtc.setSeconds(0);
+    g::g_rtc.setDate(1, 1, (uint8_t)2022);
+    g::g_stats.bootTime = g::g_rtc.getEpoch();
 
     intBat = Util::batteryLevel();
 
@@ -515,8 +514,8 @@ void disableUnusedClocks()
     // global clocks
 
     // Disable 8mhz GLCK 3 that bootloader has setup, unused?
-    // GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
-    // while (GCLK->STATUS.bit.SYNCBUSY) {}
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK3;
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
 
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(3);
     while (GCLK->STATUS.bit.SYNCBUSY) {}
@@ -536,7 +535,7 @@ void disableUnusedClocks()
     // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
     // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
 
-    currSet &= ~PM_APBCMASK_TCC0; // unused... but bound to TCC0?
+    // currSet &= ~PM_APBCMASK_TCC0; // unused... but bound to TCC0?
     // currSet &= ~PM_APBCMASK_TCC1; // vcom generator
     currSet &= ~PM_APBCMASK_TCC2;
     currSet &= ~PM_APBCMASK_TC3;
