@@ -122,41 +122,41 @@ boolean PetDisplay::begin(void)
 
     _dma.setCallback(PetDisplay::dma_callback);
 
-    GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(7);
+    // GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(7);
 
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | 
-                        GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL |
-                        GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_IDC;
+    // GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | 
+    //                     GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL |
+    //                     GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_IDC;
 
-    while (GCLK->STATUS.bit.SYNCBUSY) {};
+    // while (GCLK->STATUS.bit.SYNCBUSY) {};
 
-    // PA10
-    // E-> TCC1/WO[0] -> PIO_TIMER //e
-    // F-> TCC0/WO[2] -> PIO_TIMER_ALT //f
-    pinPeripheral(DISP_COMIN, PIO_TIMER);
+    // // PA10
+    // // E-> TCC1/WO[0] -> PIO_TIMER //e
+    // // F-> TCC0/WO[2] -> PIO_TIMER_ALT //f
+    // pinPeripheral(DISP_COMIN, PIO_TIMER);
 
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN |       
-                        GCLK_CLKCTRL_GEN_GCLK4 |   
-                        GCLK_CLKCTRL_ID_TCC0_TCC1; 
-    while (GCLK->STATUS.bit.SYNCBUSY) {};      
+    // GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN |       
+    //                     GCLK_CLKCTRL_GEN_GCLK4 |   
+    //                     GCLK_CLKCTRL_ID_TCC0_TCC1; 
+    // while (GCLK->STATUS.bit.SYNCBUSY) {};      
 
-    REG_TCC1_WAVE |= TCC_WAVE_POL(0xF) |      // Reverse the output polarity on all TCC0 outputs
-                     TCC_WAVE_WAVEGEN_DSBOTH; // Setup dual slope PWM on TCC0
-    while (TCC1->SYNCBUSY.bit.WAVE) {}; 
+    // REG_TCC1_WAVE |= TCC_WAVE_POL(0xF) |      // Reverse the output polarity on all TCC0 outputs
+    //                  TCC_WAVE_WAVEGEN_DSBOTH; // Setup dual slope PWM on TCC0
+    // while (TCC1->SYNCBUSY.bit.WAVE) {}; 
 
-    // Each timer counts up to a maximum or TOP value set by the PER register,
-    // this determines the frequency of the PWM operation: Freq = 125hz/(2*N*PER)
-    REG_TCC1_PER = 64;              // Set the FreqTcc of the PWM on TCC1 
-    while (TCC1->SYNCBUSY.bit.PER) {}; 
+    // // Each timer counts up to a maximum or TOP value set by the PER register,
+    // // this determines the frequency of the PWM operation: Freq = 125hz/(2*N*PER)
+    // REG_TCC1_PER = 64;              // Set the FreqTcc of the PWM on TCC1 
+    // while (TCC1->SYNCBUSY.bit.PER) {}; 
 
-    // Set the PWM signal to output , PWM ds = 2*N(TOP-CCx)/Freqtcc => PWM=0 => CCx=PER, PWM=50% => CCx = PER/2
-    REG_TCC1_CC0 = 32;               // TCC1 CC0 - on D11 50%
-    while (TCC1->SYNCBUSY.bit.CC0) {}; 
+    // // Set the PWM signal to output , PWM ds = 2*N(TOP-CCx)/Freqtcc => PWM=0 => CCx=PER, PWM=50% => CCx = PER/2
+    // REG_TCC1_CC0 = 32;               // TCC1 CC0 - on D11 50%
+    // while (TCC1->SYNCBUSY.bit.CC0) {}; 
 
-    // Divide the GCLOCK signal by 1 giving in this case 125hz (20.83ns) TCC1 timer tick and enable the outputs
-    REG_TCC1_CTRLA |= TCC_CTRLA_PRESCALER_DIV1 | // Divide GCLK4 by 1
-                      TCC_CTRLA_ENABLE;          // Enable the TCC0 output
-    while (TCC1->SYNCBUSY.bit.ENABLE) {}; 
+    // // Divide the GCLOCK signal by 1 giving in this case 125hz (20.83ns) TCC1 timer tick and enable the outputs
+    // REG_TCC1_CTRLA |= TCC_CTRLA_PRESCALER_DIV1 | // Divide GCLK by 1
+    //                   TCC_CTRLA_ENABLE;          // Enable the TCC0 output
+    // while (TCC1->SYNCBUSY.bit.ENABLE) {}; 
 
     return true;
 }

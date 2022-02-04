@@ -88,9 +88,10 @@ void WatchdogSAMD::reset()
     // Write the watchdog clear key value (0xA5) to the watchdog
     // clear register to clear the watchdog timer and reset it.
 
-    while (WDT->STATUS.bit.SYNCBUSY)
-        ;
-    WDT->CLEAR.reg = WDT_CLEAR_CLEAR_KEY;
+    if (!WDT->STATUS.bit.SYNCBUSY) // Check if the WDT registers are synchronized
+    {
+        REG_WDT_CLEAR = WDT_CLEAR_CLEAR_KEY; // Clear the watchdog timer
+    }
 }
 
 uint8_t WatchdogSAMD::resetCause()
@@ -155,8 +156,9 @@ void WatchdogSAMD::_initialize_wdt()
                         GCLK_GENCTRL_DIVSEL;
 
     while (GCLK->STATUS.bit.SYNCBUSY) {};
-    // WDT clock = clock gen 2
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID_WDT | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK3;
+
+    // WDT clock = clock gen 3
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_ID_WDT | GCLK_CLKCTRL_GEN_GCLK3;
     while (GCLK->STATUS.bit.SYNCBUSY) {};
 
     // Enable WDT early-warning interrupt

@@ -57,20 +57,28 @@ uint16_t intBat = 300;
 
 void setup(void)
 {
-    // set nvm wait states to 3, allowing for operation down to 1.6v
-    // though display cuts out at 1.9v
+#ifdef DEBUG
+    Serial.begin(9600);
 
-    // Watchdog._initialize_wdt();
-    
-    NVMCTRL->CTRLB.bit.RWS = 3;
-    
-    // power management
-    disableUnusedClocks();
+    // wait for serial to attach
+    while (!Serial) {}
+#endif
 
-    // setup pin mappings
     pinMode(PIN_BEEPER, OUTPUT);
     tone(PIN_BEEPER, NOTE_C4, 250);
 
+    // // power management
+    // disableUnusedClocks();
+
+    // Watchdog._initialize_wdt();
+    // WDT->CTRL.reg = 0; // Disable watchdog for config
+    // while (WDT->STATUS.bit.SYNCBUSY) {};
+
+    // set nvm wait states to 3, allowing for operation down to 1.6v
+    // though display cuts out at 1.9v
+    NVMCTRL->CTRLB.bit.RWS = 3;
+
+    // setup pin mappings
     display.setRotation(DISP_ROTATION);
     display.begin();
     display.refresh();
@@ -123,39 +131,34 @@ void setup(void)
         usb_msc.begin();
     }
 
-    // disable and re-enable usb to get serial and usb msc at the same time
-    USBDevice.detach();
-    delay(500);
-    USBDevice.attach();
-
-    // Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
-    // Watchdog.disable();
-
-#ifdef DEBUG
-    Serial.begin(9600);
-
-    // wait for serial to attach
-    while (!Serial) {}
-
-    // dump registers for debugging power settings
-    ZeroRegOptions opts = {Serial, false};
-    printZeroRegs(opts);
-#endif
+    Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 
     buttonWakeup = false;
     nextSleepTime = 40000;
     currentState = new MenuState();
     tone(PIN_BEEPER, NOTE_D4, 250);
-    Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 
-    g::g_rtc.begin();
-    g::g_rtc.setHours(0);
-    g::g_rtc.setMinutes(0);
-    g::g_rtc.setSeconds(0);
-    g::g_rtc.setDate(1, 1, (uint8_t)2022);
-    g::g_stats.bootTime = g::g_rtc.getEpoch();
+    // g::g_rtc.begin();
+    // g::g_rtc.setHours(0);
+    // g::g_rtc.setMinutes(0);
+    // g::g_rtc.setSeconds(0);
+    // g::g_rtc.setDate(1, 1, (uint8_t)2022);
+    // g::g_stats.bootTime = g::g_rtc.getEpoch();
 
     intBat = Util::batteryLevel();
+
+#ifdef DEBUG
+    // dump registers for debugging power settings
+    ZeroRegOptions opts = {Serial, false};
+    printZeroRegs(opts);
+#endif
+
+// disable and re-enable usb to get serial and usb msc at the same time
+#ifndef DEBUG
+    USBDevice.detach();
+    delay(500);
+    USBDevice.attach();
+#endif
 }
 
 uint32_t sleepTicks = 0;
@@ -276,9 +279,9 @@ void loop(void)
     {
         intBat = Util::batteryLevel();
 
-        if(intBat < 201)
+        if (intBat < 201)
         {
-            //disable clocks and shutdown?
+            // disable clocks and shutdown?
         }
         display.sync();
 
@@ -408,7 +411,7 @@ bool drawTimeAndBattery()
     }
 
     // 1.5*2 alk, 0.8v cutoff
-    // 1.4*2 nimh? 1.0v cutoff 
+    // 1.4*2 nimh? 1.0v cutoff
     //
     // discharge curves are non-linear, needs tunning
     // 2.6v >- full
@@ -419,7 +422,7 @@ bool drawTimeAndBattery()
     // 2.0v < shutdown, refuse to boot, below cutoff voltage
     // 1.9v - display will not turn on at this voltage
     // below 2v, display battery replace logo
-    // 
+    //
     // 2.7v - full
     // 2.6v - 3/4
     // 2.4v - 2/4SWS
@@ -533,11 +536,12 @@ void disableUnusedClocks()
     // why does GLCK_SERCOM4_CORE (flash) show up as set but not GLCK_SERCOM2_CORE (display)?
     // currSet &= ~PM_APBCMASK_SERCOM5; // debug port?
 
-    // currSet &= ~PM_APBCMASK_TCC0;
-    // currSet &= ~PM_APBCMASK_TCC1;
+    currSet &= ~PM_APBCMASK_TCC0; // unused... but bound to TCC0?
+    // currSet &= ~PM_APBCMASK_TCC1; // vcom generator
     currSet &= ~PM_APBCMASK_TCC2;
     currSet &= ~PM_APBCMASK_TC3;
     currSet &= ~PM_APBCMASK_TC4;
+    // currSet &= ~PM_APBCMASK_TC5; // tone generator
     currSet &= ~PM_APBCMASK_TC6;
     currSet &= ~PM_APBCMASK_TC7;
     currSet &= ~PM_APBCMASK_DAC;
