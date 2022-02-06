@@ -136,6 +136,13 @@ boolean PetDisplay::begin(void)
 
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK4 | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_ID_TCC0_TCC1;
     while (GCLK->STATUS.bit.SYNCBUSY) {};
+    
+    TCC1->CTRLA.bit.ENABLE = 0;
+    while( TCC1->SYNCBUSY.bit.ENABLE) {};
+
+    TCC1->CTRLA.bit.RUNSTDBY = 1;
+    TCC1->CTRLA.bit.ENABLE = 1;
+    while( TCC1->SYNCBUSY.bit.ENABLE) {};
 
     TCC1->WAVE.reg |= TCC_WAVE_POL(0xF) |      // Reverse the output polarity on all TCC0 outputs
                       TCC_WAVE_WAVEGEN_DSBOTH; // Setup dual slope PWM on TCC0
