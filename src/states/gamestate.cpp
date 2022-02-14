@@ -30,6 +30,7 @@ GameState *MenuState::update()
             break;
 
         case 3:
+            return new ToneScreen();
             break;
 
         case 4:
@@ -239,4 +240,85 @@ GameState *SleepScreen::update()
 void SleepScreen::draw(PetDisplay *disp)
 {
     pm.draw(disp, 0, 0);
+}
+
+ToneScreen::ToneScreen()
+    : GameState(6), melody{
+                        REST,    1,  REST,    1,  NOTE_C4, 4,  NOTE_E4, 4,  NOTE_G4, 4, NOTE_E4, 4, NOTE_C4, 4,
+                        NOTE_E4, 8,  NOTE_G4, -4, NOTE_E4, 4,  NOTE_A3, 4,  NOTE_C4, 4, NOTE_E4, 4, NOTE_C4, 4,
+                        NOTE_A3, 4,  NOTE_C4, 8,  NOTE_E4, -4, NOTE_C4, 4,  NOTE_G3, 4, NOTE_B3, 4, NOTE_D4, 4,
+                        NOTE_B3, 4,  NOTE_G3, 4,  NOTE_B3, 8,  NOTE_D4, -4, NOTE_B3, 4,
+
+                        NOTE_G3, 4,  NOTE_G3, 8,  NOTE_G3, -4, NOTE_G3, 8,  NOTE_G3, 4, NOTE_G3, 4, NOTE_G3, 4,
+                        NOTE_G3, 8,  NOTE_G3, 4,  NOTE_C4, 4,  NOTE_E4, 4,  NOTE_G4, 4, NOTE_E4, 4, NOTE_C4, 4,
+                        NOTE_E4, 8,  NOTE_G4, -4, NOTE_E4, 4,  NOTE_A3, 4,  NOTE_C4, 4, NOTE_E4, 4, NOTE_C4, 4,
+                        NOTE_A3, 4,  NOTE_C4, 8,  NOTE_E4, -4, NOTE_C4, 4,  NOTE_G3, 4, NOTE_B3, 4, NOTE_D4, 4,
+                        NOTE_B3, 4,  NOTE_G3, 4,  NOTE_B3, 8,  NOTE_D4, -4, NOTE_B3, 4,
+
+                        NOTE_G3, -1,
+                    }
+{
+    tick = k_tickTime15;
+
+    notes = sizeof(melody) / sizeof(melody[0]) / 2;
+    currentNote = 0;
+    noteDuration = 0;
+}
+
+GameState *ToneScreen::update()
+{
+    int tempo = 160;
+    int wholenote = (60000 * 4) / tempo;
+    int divider = 0;
+
+    if (g::g_keyReleased & BUTTON_A)
+    {
+        return new MenuState();
+    }
+
+    redraw = false;
+
+    // wait for current note to finish
+    if(noteDuration > 0)
+    {
+        noteDuration -= k_15_fpsSleepMs;
+        return this;
+    }
+
+    // stop the waveform generation before the next note.
+    noTone(PIN_BEEPER);
+    currentNote += 2;
+
+    if(currentNote >= notes * 2)
+    {
+        return new MenuState();
+    }
+
+    // calculates the duration of each note
+    divider = melody[currentNote + 1];
+    if (divider > 0)
+    {
+        // regular note, just proceed
+        noteDuration = (wholenote) / divider;
+    }
+    else if (divider < 0)
+    {
+        // dotted notes are represented with negative durations!!
+        noteDuration = (wholenote) / abs(divider);
+        noteDuration *= 1.5; // increases the duration in half for dotted notes
+    }
+
+    // we only play the note for 90% of the duration, leaving 10% as a pause
+    tone(PIN_BEEPER, melody[currentNote], noteDuration * 0.9);
+
+    redraw = true;
+
+    return this;
+}
+
+void ToneScreen::draw(PetDisplay *disp)
+{
+    disp->setCursor(0, 8);
+    disp->setTextColor(PET_BLACK);
+    disp->printf(" index %u\n note %u\n len %u", currentNote, melody[currentNote], noteDuration);
 }

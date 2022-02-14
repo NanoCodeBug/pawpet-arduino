@@ -80,7 +80,6 @@ void setup(void)
     display.refresh();
 
     pinMode(PIN_BEEPER, OUTPUT);
-    tone(PIN_BEEPER, NOTE_C4, 250);
 
     pinMode(PIN_BUTTON_A, INPUT_PULLUP);
     pinMode(PIN_BUTTON_B, INPUT_PULLUP);
@@ -135,7 +134,6 @@ void setup(void)
     buttonWakeup = false;
     nextSleepTime = 40000;
     currentState = new MenuState();
-    tone(PIN_BEEPER, NOTE_D4, 250);
 
     g::g_rtc.begin();
     g::g_rtc.setHours(0);
@@ -158,6 +156,8 @@ void setup(void)
     delay(500);
     USBDevice.attach();
 #endif
+
+    tone(PIN_BEEPER, NOTE_C4, 250);
 }
 
 uint32_t sleepTicks = 0;

@@ -35,7 +35,7 @@ class MenuState : public GameState
     }
 
     int8_t index = 0;
-    const char *items[6] = {"Game 1", "anim 1", "item 3", "item 4", "stats", "suspend"};
+    const char *items[6] = {"game", "animate", "sleep", "music", "stats", "suspend"};
 
     GameState *update() override;
     void draw(PetDisplay *disp) override;
@@ -93,4 +93,19 @@ class SleepScreen : public GameState
     GameState *update() override;
 
     void draw(PetDisplay *disp) override;
+};
+
+class ToneScreen : public GameState
+{
+  public:
+    ToneScreen();
+
+    GameState *update() override;
+
+    void draw(PetDisplay *disp) override;
+
+    int notes;
+    int currentNote;
+    int noteDuration;
+    int melody[120];
 };
