@@ -2665,7 +2665,7 @@
     (uuid 00000000-0000-0000-0000-00005f344907)
     (property "Reference" "U1" (id 0) (at 226.06 152.1206 0))
     (property "Value" "ATSAMD21G18A-A" (id 1) (at 226.06 154.432 0))
-    (property "Footprint" "pawpet:TQFP-48-1EP_7x7mm_P0.5mm_EP5x5mm_handsolder" (id 2) (at 248.92 148.59 0)
+    (property "Footprint" "Package_QFP:TQFP-48-1EP_7x7mm_P0.5mm_EP5x5mm" (id 2) (at 248.92 148.59 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/SAM_D21_DA1_Family_Data%20Sheet_DS40001882E.pdf" (id 3) (at 226.06 76.2 0)
@@ -3216,7 +3216,7 @@
     (property "Value" "MOLEX" (id 1) (at 76.0984 78.6384 90)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Footprint" "pawpet:Molex-52892-1033-Manufacturer_Recommended_handsolder" (id 2) (at 77.47 71.12 0)
+    (property "Footprint" "molex:Molex-52892-1033-Manufacturer_Recommended" (id 2) (at 77.47 71.12 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 77.47 71.12 0)
@@ -3276,7 +3276,7 @@
     (uuid 00000000-0000-0000-0000-00005f4d7ef1)
     (property "Reference" "U3" (id 0) (at 105.41 141.859 0))
     (property "Value" "MX25R1635FM1IL0" (id 1) (at 105.41 144.1704 0))
-    (property "Footprint" "pawpet:Macronix-SOP-8-150MIL-0-0-MFG_handsolder" (id 2) (at 83.82 163.83 0)
+    (property "Footprint" "Package_SO:SOIC-8_5.23x5.23mm_P1.27mm" (id 2) (at 83.82 163.83 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "http://www.macronix.com/Lists/Datasheet/Attachments/7534/MX25R3235F,%20Wide%20Range,%2032Mb,%20v1.6.pdf" (id 3) (at 83.82 148.59 0)
@@ -3994,7 +3994,7 @@
       (reference "J2") (unit 1) (value "Conn_ARM_JTAG_SWD_10") (footprint "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical")
     )
     (path "/00000000-0000-0000-0000-00005f37490d"
-      (reference "J3") (unit 1) (value "MOLEX") (footprint "pawpet:Molex-52892-1033-Manufacturer_Recommended_handsolder")
+      (reference "J3") (unit 1) (value "MOLEX") (footprint "molex:Molex-52892-1033-Manufacturer_Recommended")
     )
     (path "/00000000-0000-0000-0000-00005f60398a"
       (reference "LS1") (unit 1) (value "beep") (footprint "Buzzer_Beeper:Buzzer_Murata_PKMCS0909E4000-R1")
@@ -4057,10 +4057,10 @@
       (reference "TP1") (unit 1) (value "TestPoint_Small") (footprint "TestPoint:TestPoint_Pad_1.0x1.0mm")
     )
     (path "/00000000-0000-0000-0000-00005f344907"
-      (reference "U1") (unit 1) (value "ATSAMD21G18A-A") (footprint "pawpet:TQFP-48-1EP_7x7mm_P0.5mm_EP5x5mm_handsolder")
+      (reference "U1") (unit 1) (value "ATSAMD21G18A-A") (footprint "Package_QFP:TQFP-48-1EP_7x7mm_P0.5mm_EP5x5mm")
     )
     (path "/00000000-0000-0000-0000-00005f4d7ef1"
-      (reference "U3") (unit 1) (value "MX25R1635FM1IL0") (footprint "pawpet:Macronix-SOP-8-150MIL-0-0-MFG_handsolder")
+      (reference "U3") (unit 1) (value "MX25R1635FM1IL0") (footprint "Package_SO:SOIC-8_5.23x5.23mm_P1.27mm")
     )
     (path "/00000000-0000-0000-0000-00005f365140"
       (reference "Y1") (unit 1) (value "32,768") (footprint "Crystal:Crystal_SMD_2012-2Pin_2.0x1.2mm")
