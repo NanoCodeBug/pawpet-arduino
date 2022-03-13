@@ -109,3 +109,13 @@ class ToneScreen : public GameState
     int noteDuration;
     int melody[120];
 };
+
+class SettingsState : public GameState
+{
+  public:
+    SettingsState();
+
+    GameState *update() override;
+
+    void draw(PetDisplay *disp) override;
+};

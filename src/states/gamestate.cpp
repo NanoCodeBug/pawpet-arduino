@@ -279,7 +279,7 @@ GameState *ToneScreen::update()
     redraw = false;
 
     // wait for current note to finish
-    if(noteDuration > 0)
+    if (noteDuration > 0)
     {
         noteDuration -= k_15_fpsSleepMs;
         return this;
@@ -289,7 +289,7 @@ GameState *ToneScreen::update()
     noTone(PIN_BEEPER);
     currentNote += 2;
 
-    if(currentNote >= notes * 2)
+    if (currentNote >= notes * 2)
     {
         return new MenuState();
     }

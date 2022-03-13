@@ -2,13 +2,13 @@
 #include <Adafruit_TinyUSB.h>
 #include <Arduino.h>
 #include <FatLib/FatFileSystem.h>
-#include <RTCZero.h>
 #include <SPI.h>
 #include <WInterrupts.h>
 #include <wiring_private.h>
 
 #include "src/lib/ArduinoLowPower.h"
 #include "src/lib/PawPet_FlashTransport.h"
+#include "src/lib/RTCZero.h"
 
 #include "src/common.h"
 #include "src/config.h"
@@ -17,6 +17,11 @@
 #include "src/states/gamestate.h"
 
 // #define DEBUG 1
+#define INSTALLER 1
+
+#ifdef INSTALLER
+#include "src/states/pawos_install.h"
+#endif
 
 #ifdef DEBUG
 #include <ZeroRegs.h>
@@ -28,7 +33,6 @@
 static const SPIFlash_Device_t possible_devices[] = {MX25R1635F};
 SPIClass flashSPI(&sercom2, FLASH_MISO, FLASH_SCK, FLASH_MOSI, SPI_PAD_0_SCK_1, SERCOM_RX_PAD_2);
 PawPet_FlashTransport_SPI flashTransport(FLASH_CS, flashSPI);
-Adafruit_SPIFlash flash(&flashTransport);
 
 SPIClass dispSPI(&sercom4, SHARP_MISO, SHARP_SCK, SHARP_MOSI, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 PetDisplay display(&dispSPI, SHARP_SS, DISP_WIDTH, DISP_HEIGHT);
@@ -57,6 +61,9 @@ uint16_t intBat = 300;
 
 void setup(void)
 {
+    g::g_flash = new Adafruit_SPIFlash(&flashTransport);
+    Adafruit_SPIFlash& flash = *g::g_flash;
+
 #ifdef DEBUG
     Serial.begin(9600);
 
@@ -86,7 +93,37 @@ void setup(void)
     pinMode(PIN_BUTTON_C, INPUT_PULLUP);
 
     pinMode(PIN_BUTTON_P, INPUT_PULLUP);
-    LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+    // LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+
+    EExt_Interrupts in = g_APinDescription[PIN_BUTTON_P].ulExtInt;
+    if (in == NOT_AN_INTERRUPT || in == EXTERNAL_INT_NMI)
+        return;
+
+    attachInterrupt(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+
+    // enable EIC clock
+    GCLK->CLKCTRL.bit.CLKEN = 0; // disable GCLK module
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    GCLK->CLKCTRL.reg = (uint16_t)(GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK3 |
+                                   GCLK_CLKCTRL_ID(GCM_EIC)); // EIC clock switched on GCLK3
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    // GCLK->GENCTRL.reg =
+    //     (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_RUNSTDBY); // source for
+    //     GCLK2 is OSCULP32K
+    // while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+
+    // GCLK->GENCTRL.bit.RUNSTDBY = 1; // GCLK2 run standby
+    // while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+
+    // Enable wakeup capability on pin in case being used during sleep
+    EIC->WAKEUP.reg |= (1 << in);
+
+    /* Errata: Make sure that the Flash does not power all the way down
+     * when in sleep mode. */
+
+    NVMCTRL->CTRLB.bit.SLEEPPRM = NVMCTRL_CTRLB_SLEEPPRM_DISABLED_Val;
 
     pinMode(PIN_UP, INPUT_PULLUP);
     pinMode(PIN_LEFT, INPUT_PULLUP);
@@ -108,7 +145,7 @@ void setup(void)
     flash.begin(possible_devices);
 
     // Init file system on the flash
-    g::g_fatfs = new FatFileSystem;
+    g::g_fatfs = new FatFileSystem();
     g::g_stats.filesysFound = g::g_fatfs->begin(&flash);
     g::g_stats.flashSize = flash.size();
 
@@ -133,7 +170,11 @@ void setup(void)
 
     buttonWakeup = false;
     nextSleepTime = 40000;
+#ifdef INSTALLER
+    currentState = new InstallMenu();
+#else
     currentState = new MenuState();
+#endif
 
     g::g_rtc.begin();
     g::g_rtc.setHours(0);
@@ -156,13 +197,15 @@ void setup(void)
     delay(500);
     USBDevice.attach();
 #endif
-
-    tone(PIN_BEEPER, NOTE_C4, 250);
+    if (!g::g_stats.filesysFound)
+    {
+        tone(PIN_BEEPER, NOTE_C4, 250);
+    }
 }
 
 uint32_t sleepTicks = 0;
-uint8_t keysPressed = 0;
-uint8_t prevKeysPressed = 0;
+uint8_t keysState = 0;
+uint8_t prevKeysState = 0;
 
 uint32_t currentTimeMs = 0;
 uint32_t frameTimeMs = 0;
@@ -180,11 +223,11 @@ void loop(void)
     Watchdog.reset();
 
     //// UPDATE ////
-    keysPressed |= readButtons();
+    keysState |= readButtons();
 
     currentTimeMs = millis();
 
-    if (keysPressed)
+    if (keysState)
     {
         nextSleepTime = currentTimeMs + 60000;
     }
@@ -195,9 +238,11 @@ void loop(void)
     {
 
         prevFrameMs = currentTimeMs;
-
-        g::g_keyPressed = keysPressed;
-        g::g_keyReleased = ~(prevKeysPressed) & (keysPressed);
+        // held is currenlty just previous update, a function of update loop speed
+        // between 66 and 2000 ms
+        g::g_keyPressed = ~(prevKeysState)&keysState;
+        g::g_keyReleased = prevKeysState & ~(keysState);
+        g::g_keyHeld = prevKeysState & keysState;
 
         uint32_t t1 = millis();
         GameState *nextState = currentState->update();
@@ -235,6 +280,8 @@ void loop(void)
         if (currentState->redraw)
         {
             display.fillDisplayBuffer();
+            display.setCursor(0, 8);
+            display.setTextColor(PET_BLACK);
             currentState->draw(&display);
 
             // TODO, draw overlay should say if it needs an update
@@ -263,8 +310,8 @@ void loop(void)
             droppedFrames++;
         }
 
-        prevKeysPressed = keysPressed;
-        keysPressed = 0;
+        prevKeysState = keysState;
+        keysState = 0;
     }
     else
     {
@@ -332,6 +379,8 @@ void loop(void)
             if (currentState->redraw)
             {
                 display.fillDisplayBuffer();
+                display.setCursor(0, 8);
+                display.setTextColor(PET_BLACK);
                 currentState->draw(&display);
                 drawTimeAndBattery();
                 dirtyFrameBuffer = true;
@@ -472,7 +521,7 @@ int32_t msc_read_cb(uint32_t lba, void *buffer, uint32_t bufsize)
 {
     // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
     // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
-    return flash.readBlocks(lba, (uint8_t *)buffer, bufsize / 512) ? bufsize : -1;
+    return g::g_flash->readBlocks(lba, (uint8_t *)buffer, bufsize / 512) ? bufsize : -1;
 }
 
 // Callback invoked when received WRITE10 command.
@@ -483,7 +532,7 @@ int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize)
     // check_uf2_handover(buffer, bufsize, 4, 5, tag);
     // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
     // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
-    return flash.writeBlocks(lba, buffer, bufsize / 512) ? bufsize : -1;
+    return g::g_flash->writeBlocks(lba, buffer, bufsize / 512) ? bufsize : -1;
 }
 
 // Callback invoked when WRITE10 command is completed (status received and accepted by host).
@@ -491,7 +540,7 @@ int32_t msc_write_cb(uint32_t lba, uint8_t *buffer, uint32_t bufsize)
 void msc_flush_cb(void)
 {
     // sync with flash
-    flash.syncBlocks();
+    g::g_flash->syncBlocks();
 
     // clear file system's cache to force refresh
     g::g_fatfs->cacheClear();

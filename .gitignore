@@ -7,3 +7,4 @@
 /build*
 
 arduino-cli*
+bootloader-feather_m0-*

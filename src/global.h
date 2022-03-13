@@ -1,6 +1,8 @@
 #pragma once
+#include "lib/RTCZero.h"
 #include <Arduino.h>
-#include <RTCZero.h>
+#include <Adafruit_SPIFlash.h>
+
 /**
  * Global objects and constants
  *
@@ -38,7 +40,9 @@ extern FatFileSystem *g_fatfs;
 extern GraphicCache *g_cache;
 extern RTCZero g_rtc;
 extern stats g_stats;
+extern Adafruit_SPIFlash *g_flash;
 
 extern uint32_t g_keyReleased;
 extern uint32_t g_keyPressed;
+extern uint32_t g_keyHeld;
 } // namespace g
