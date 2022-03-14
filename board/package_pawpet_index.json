@@ -13,7 +13,7 @@
           "version": "1.0.0",
           "deprecated": false,
           "category": "NanoCodeBug",
-          "url": "file:///D:/pawpet-1.0.0.zip",
+          "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.0.zip",
           "archiveFileName": "pawpet-1.0.0.zip",
           "checksum": "SHA-256:68F5C229A405F14539B10A2D9C600501626520D3A0607D1B00F3E5CCECDC6435",
           "size": 805171,
