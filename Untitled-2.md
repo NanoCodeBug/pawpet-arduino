@@ -80,3 +80,8 @@ average of 485μW. Writing all pixels once every 30 seconds (with a 1-second VCO
     while (!NVMCTRL->INTFLAG.bit.READY)             // Wait for the NVM command to complete
         NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK; // Clear the error flags
     NVMCTRL->CTRLB.bit.CACHEDIS = 0;                // Enable the cache
+
+
+pos 8, 5 bits
+pos 15, 2 bits
+pos 14, 1 bit

@@ -17,7 +17,7 @@
 #include "src/states/gamestate.h"
 
 // #define DEBUG 1
-#define INSTALLER 1
+// #define INSTALLER 1
 
 #ifdef INSTALLER
 #include "src/states/pawos_install.h"

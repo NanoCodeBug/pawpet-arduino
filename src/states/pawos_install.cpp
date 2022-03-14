@@ -1,7 +1,5 @@
 #include "pawos_install.h"
 #include "../lib/PawPet_SleepyDog.h"
-#include "install/ff.h"
-#include "install/diskio.h"
 
 GameState *InstallMenu::update()
 {
@@ -165,41 +163,7 @@ GameState *FlashFormat::update()
     // otherwise wait for forced format command
     if ((g::g_stats.filesysFound == false && resultCode == 0) || (g::g_keyHeld & BUTTON_P && g::g_keyHeld & UP))
     {
-        FATFS elmchamFatfs;
-        uint8_t workbuf[4096];
-
-        // Make filesystem.
-        FRESULT r = f_mkfs("", FM_FAT | FM_SFD, 0, workbuf, sizeof(workbuf));
-        if (r != FR_OK)
-        {
-            resultCode = r;
-            return this;
-        }
-
-        // mount to set disk label
-        r = f_mount(&elmchamFatfs, "0:", 1);
-        if (r != FR_OK)
-        {
-            resultCode = r;
-            return this;
-        }
-
-        // Setting label
-        r = f_setlabel("PAWPET");
-        if (r != FR_OK)
-        {
-            resultCode = r;
-            return this;
-        }
-
-        // unmount
-        f_unmount("0:");
-
-        // sync to make sure all data is written to flash
-        g::g_flash->syncBlocks();
-
-        // Check new filesystem
-        g::g_stats.filesysFound = g::g_fatfs->begin(g::g_flash);
+        resultCode = InstallUtils::format();
     }
 
     return this;
@@ -223,30 +187,14 @@ GameState *FusesState::update()
 
     if (g::g_keyHeld & BUTTON_P && g::g_keyHeld & UP)
     {
-        uint32_t userWord0 = *((uint32_t *)NVMCTRL_USER);       // Read fuses for user word 0
-        uint32_t userWord1 = *((uint32_t *)(NVMCTRL_USER + 4)); // Read fuses for user word 1
-        NVMCTRL->CTRLB.bit.CACHEDIS = 1;                        // Disable the cache
-        NVMCTRL->ADDR.reg = NVMCTRL_AUX0_ADDRESS / 2;           // Set the address
-        NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMD_EAR |            // Erase the auxiliary user page row
-                             NVMCTRL_CTRLA_CMDEX_KEY;
-
-        while (!NVMCTRL->INTFLAG.bit.READY) {}        // Wait for the NVM command to complete
-        NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK;   // Clear the error flags
-        NVMCTRL->ADDR.reg = NVMCTRL_AUX0_ADDRESS / 2; // Set the address
-        NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMD_PBC |  // Clear the page buffer
-                             NVMCTRL_CTRLA_CMDEX_KEY;
-
-        while (!NVMCTRL->INTFLAG.bit.READY) {}                         // Wait for the NVM command to complete
-        NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK;                    // Clear the error flags
-        *((uint32_t *)NVMCTRL_USER) = userWord0 & ~FUSES_BOD33_EN_Msk; // Disable the BOD33 enable fuse in user word 0
-        *((uint32_t *)(NVMCTRL_USER + 4)) = userWord1;                 // Copy back user word 1 unchanged
-        NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMD_WAP |                   // Write to the user page
-                             NVMCTRL_CTRLA_CMDEX_KEY;
-
-        while (!NVMCTRL->INTFLAG.bit.READY) {}      // Wait for the NVM command to complete
-        NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK; // Clear the error flags
-        NVMCTRL->CTRLB.bit.CACHEDIS = 0;            // Enable the cache
+        InstallUtils::SetFuses(true, 0x2);
     }
+
+    if (g::g_keyHeld & BUTTON_P && g::g_keyHeld & DOWN)
+    {
+        InstallUtils::SetFuses(false, 0x0);
+    }
+
     redraw = true;
     return this;
 }
@@ -254,13 +202,15 @@ GameState *FusesState::update()
 void FusesState::draw(PetDisplay *disp)
 {
     uint32_t userWord0 = *((uint32_t *)NVMCTRL_USER);
+    uint32_t userWord1 = *((uint32_t *)(NVMCTRL_USER + 4)); 
 
     disp->printf("  Fuses\n");
-    disp->printf("BOOT: %d\n", (userWord0 & NVMCTRL_FUSES_BOOTPROT_Msk) >> NVMCTRL_FUSES_BOOTPROT_Pos);
+    disp->printf("BTPROT: %d\n", (userWord0 & NVMCTRL_FUSES_BOOTPROT_Msk) >> NVMCTRL_FUSES_BOOTPROT_Pos);
     disp->printf("BOD33: %d\n", (userWord0 & FUSES_BOD33_EN_Msk) > 0);
 
-    disp->printf("\nup + p\n");
-    disp->printf("to set bod33\n");
+    disp->printf("%x\n%x\n", userWord0, userWord1);
+    disp->printf("^ + p\n");
+    disp->printf("V + p\n");
 }
 
 GameState *SuspendTest::update()

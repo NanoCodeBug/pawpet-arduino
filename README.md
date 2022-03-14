@@ -40,6 +40,7 @@ TODO: update instructions that use UF2 instead, should be possible to use a scri
 TODO: consider a self packaged C# exe or python script?
 
 TODO: look into using openocd for flashing bootloader
+TODO: fork adafruit bootloader to have low power operation enabled by default, bootloader blocks startup below 2.2v right now. in theory device can operate to 1.9v before display cuts out
 
 # Licensing 
 
