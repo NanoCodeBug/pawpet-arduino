@@ -32,7 +32,7 @@ else
 $buildString = @(
                 "upload",
                 "--fqbn",
-                "adafruit:samd:adafruit_feather_m0",
+                "nanocodebug:samd:pawpet_m0",
                 "pawos.ino",
                 "-p",
                 "$serialPort"

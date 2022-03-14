@@ -236,7 +236,6 @@ void loop(void)
     frameTimeMs = (currentTimeMs - prevFrameMs);
     if (frameTimeMs >= requestedFpsSleep)
     {
-
         prevFrameMs = currentTimeMs;
         // held is currenlty just previous update, a function of update loop speed
         // between 66 and 2000 ms

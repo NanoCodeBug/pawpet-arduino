@@ -14,7 +14,7 @@ if ($release)
 {
     # build args
     $buildargs = @(
-        "usbstack=tinyusb",
+        # "usbstack=tinyusb",
         "debug=off",
         "opt=small"
     )
@@ -22,7 +22,7 @@ if ($release)
 else
 {
     $buildargs = @(
-        "usbstack=tinyusb",
+        # "usbstack=tinyusb",
         "debug=on",
         "opt=small"
     )
@@ -45,8 +45,8 @@ Invoke-Expression "python $projectRoot\png2c\png2c.py $projectRoot\sprites\ $pro
 $buildString = @( 
     "compile",
     "--fqbn",
-    "adafruit:samd:adafruit_feather_m0:$($buildargs -join ',')",
-    "--build-property build.extra_flags=`"-DCRYSTALLESS=1 -D__SAMD21G18A__ -DADAFRUIT_FEATHER_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS {build.usb_flags}`"",
+    "nanocodebug:samd:pawpet_m0:$($buildargs -join ',')",
+    # "--build-property build.extra_flags=`"-DCRYSTALLESS=1 -D__SAMD21G18A__ -DADAFRUIT_FEATHER_M0 -DARDUINO_SAMD_ZERO -DARM_MATH_CM0PLUS {build.usb_flags}`"",
     "pawos.ino",
     "--output-dir",
     "build" 

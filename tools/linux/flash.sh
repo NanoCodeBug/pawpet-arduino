@@ -7,4 +7,4 @@ echo $TOOLSPATH
 
 # curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
-$TOOLSPATH/arduino-cli upload --fqbn adafruit:samd:adafruit_feather_m0 pawos.ino /dev/ttyACM0
+$TOOLSPATH/arduino-cli upload --fqbn nanocodebug:samd:pawpet_m0 pawos.ino /dev/ttyACM0
