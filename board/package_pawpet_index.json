@@ -15,8 +15,8 @@
           "category": "NanoCodeBug",
           "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.1.zip",
           "archiveFileName": "pawpet-1.0.1.zip",
-          "checksum": "SHA-256:C3C10BE4D9FE0207970E9E1F0DD956386A7CFBD77AFDBC8DA4658307978B2A7E",
-          "size": 621208,
+          "checksum": "SHA-256:CD03FFAF828D3FB029E6128E04C27590735200CC8D5B414A89DF18F4245F91BF",
+          "size": 631988,
           "boards": [
             {
               "name": "PawPet M0"
@@ -50,11 +50,6 @@
               "packager": "adafruit",
               "name": "CMSIS-Atmel",
               "version": "1.2.2"
-            },
-            {
-              "packager": "arduino",
-              "name": "arduinoOTA",
-              "version": "1.2.1"
             }
           ],
           "discoveryDependencies": [],
