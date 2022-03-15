@@ -15,8 +15,8 @@ $TOOLSPATH/arduino-cli config init --overwrite --additional-urls "https://adafru
 
 $TOOLSPATH/arduino-cli core update-index
 
-$TOOLSPATH/arduino-cli core install arduino:samd 
-$TOOLSPATH/arduino-cli core install adafruit:samd
+# $TOOLSPATH/arduino-cli core install arduino:samd 
+# $TOOLSPATH/arduino-cli core install adafruit:samd
 $TOOLSPATH/arduino-cli core install nanocodebug:samd
 
 $TOOLSPATH/arduino-cli lib update-index

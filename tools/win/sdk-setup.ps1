@@ -10,12 +10,12 @@ Invoke-Expression "$arduinoCli config init --overwrite --additional-urls `"https
 Invoke-Expression "$arduinoCli core update-index"
 
 # Invoke-Expression "$arduinoCli core install arduino:samd"
-Invoke-Expression "$arduinoCli core install adafruit:samd"
+# Invoke-Expression "$arduinoCli core install adafruit:samd"
 Invoke-Expression "$arduinoCli core install nanocodebug:samd"
 
 Invoke-Expression "$arduinoCli lib install RTCZero `"Adafruit GFX Library`" `"Adafruit BusIO`" `"Adafruit SPIFlash`" `"SdFat - Adafruit Fork`" `"Adafruit Zero DMA Library`"" 
 
-Invoke-Expression "$arduinoCli lib install ZeroRegs"
+# Invoke-Expression "$arduinoCli lib install ZeroRegs"
 
 # not needed, built in?
 # `"Adafruit TinyUSB Library`"
