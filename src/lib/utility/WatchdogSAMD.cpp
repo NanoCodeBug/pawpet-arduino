@@ -88,11 +88,22 @@ void WatchdogSAMD::reset()
     // Write the watchdog clear key value (0xA5) to the watchdog
     // clear register to clear the watchdog timer and reset it.
 
+    while (WDT->STATUS.bit.SYNCBUSY) {}; // Check if the WDT registers are synchronized
+    REG_WDT_CLEAR = WDT_CLEAR_CLEAR_KEY; // Clear the watchdog timer
+}
+
+void WatchdogSAMD::fastReset()
+{
+    // Write the watchdog clear key value (0xA5) to the watchdog
+    // clear register to clear the watchdog timer and reset it.
+
     if (!WDT->STATUS.bit.SYNCBUSY) // Check if the WDT registers are synchronized
     {
         REG_WDT_CLEAR = WDT_CLEAR_CLEAR_KEY; // Clear the watchdog timer
     }
 }
+
+
 
 uint8_t WatchdogSAMD::resetCause()
 {
@@ -120,7 +131,6 @@ void WDT_Handler(void)
 
 void WatchdogSAMD::sleep(uint8_t bits)
 {
-
     enable(bits, true); // true = for sleep
 
     // Enable standby sleep mode (deepest sleep) and activate.

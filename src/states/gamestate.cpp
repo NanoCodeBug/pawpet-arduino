@@ -3,17 +3,17 @@
 
 GameState *MenuState::update()
 {
-    if (g::g_keyReleased & DOWN && index < 5)
+    if (g::g_keyPressed & DOWN && index < 5)
     {
         index++;
         redraw = true;
     }
-    else if (g::g_keyReleased & UP && index > 0)
+    else if (g::g_keyPressed & UP && index > 0)
     {
         index--;
         redraw = true;
     }
-    else if (g::g_keyReleased & BUTTON_P)
+    else if (g::g_keyPressed & BUTTON_P)
     {
         switch (index)
         {
@@ -86,15 +86,15 @@ TestGame1::TestGame1() : GameState(2), _icons(icons)
 
 GameState *TestGame1::update()
 {
-    if (g::g_keyReleased & LEFT && paddleX > 0)
+    if (g::g_keyPressed & LEFT && paddleX > 0)
     {
         paddleX--;
     }
-    else if (g::g_keyReleased & RIGHT && paddleX < 7)
+    else if (g::g_keyPressed & RIGHT && paddleX < 7)
     {
         paddleX++;
     }
-    else if (g::g_keyReleased & BUTTON_A)
+    else if (g::g_keyPressed & BUTTON_A)
     {
         return new MenuState();
     }
@@ -136,7 +136,7 @@ StatsState::StatsState() : GameState(3)
 
 GameState *StatsState::update()
 {
-    if (g::g_keyReleased & BUTTON_A)
+    if (g::g_keyPressed & BUTTON_A)
     {
         return new MenuState();
     }
@@ -201,7 +201,7 @@ AnimationTest::AnimationTest() : GameState(4), petSit(pet_sit)
 
 GameState *AnimationTest::update()
 {
-    if (g::g_keyReleased & BUTTON_A)
+    if (g::g_keyPressed & BUTTON_A)
     {
         return new MenuState();
     }
@@ -226,7 +226,7 @@ SleepScreen::SleepScreen() : GameState(5), pm("sleeptest")
 
 GameState *SleepScreen::update()
 {
-    if (g::g_keyReleased & BUTTON_A)
+    if (g::g_keyPressed & BUTTON_A)
     {
         return new MenuState();
     }
@@ -271,7 +271,7 @@ GameState *ToneScreen::update()
     int wholenote = (60000 * 4) / tempo;
     int divider = 0;
 
-    if (g::g_keyReleased & BUTTON_A)
+    if (g::g_keyPressed & BUTTON_A)
     {
         return new MenuState();
     }

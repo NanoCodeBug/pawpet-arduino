@@ -37,6 +37,7 @@ public:
 
   // Reset or 'kick' the watchdog timer to prevent a reset of the device.
   void reset();
+  void fastReset();
 
   // Find out the cause of the last reset - see datasheet for bitmask
   uint8_t resetCause();

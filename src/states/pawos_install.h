@@ -6,7 +6,7 @@
 class InstallUtils
 {
   public:
-    static void SetFuses(bool bod33Enable, uint32_t bootProtPages)
+    static void SetFuses(bool bod33On, uint32_t bootProtPages)
     {
         uint32_t userWord0 = *((uint32_t *)NVMCTRL_USER);       // Read fuses for user word 0
         uint32_t userWord1 = *((uint32_t *)(NVMCTRL_USER + 4)); // Read fuses for user word 1
@@ -24,7 +24,7 @@ class InstallUtils
         while (!NVMCTRL->INTFLAG.bit.READY) {}      // Wait for the NVM command to complete
         NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK; // Clear the error flags
 
-        if(bod33Enable)
+        if(!bod33On)
         {
           userWord0 &= ~FUSES_BOD33_EN_Msk;
         }

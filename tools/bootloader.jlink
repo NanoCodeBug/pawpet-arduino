@@ -1,0 +1,6 @@
+SelectInterface swd
+Speed 4000 
+r
+erase
+loadfile board\bootloader\bootloader-pawpet_m0-v3.14.0.bin
+exit

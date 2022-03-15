@@ -186,13 +186,15 @@ GameState *FusesState::update()
     }
 
     if (g::g_keyHeld & BUTTON_P && g::g_keyHeld & UP)
-    {
-        InstallUtils::SetFuses(true, 0x2);
+    {   
+        // enable bod33, disable all bootloader protection
+        InstallUtils::SetFuses(true, 0x7);
     }
 
     if (g::g_keyHeld & BUTTON_P && g::g_keyHeld & DOWN)
     {
-        InstallUtils::SetFuses(false, 0x0);
+        // disable bod33, enable 8192 bytes of bootloader protection
+        InstallUtils::SetFuses(false, 0x2);
     }
 
     redraw = true;
@@ -209,8 +211,8 @@ void FusesState::draw(PetDisplay *disp)
     disp->printf("BOD33: %d\n", (userWord0 & FUSES_BOD33_EN_Msk) > 0);
 
     disp->printf("%x\n%x\n", userWord0, userWord1);
-    disp->printf("^ + p\n");
-    disp->printf("V + p\n");
+    disp->printf("^p - un\n");
+    disp->printf("Vp - set\n");
 }
 
 GameState *SuspendTest::update()

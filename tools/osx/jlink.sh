@@ -1,0 +1,1 @@
+JLinkExe -device AT91SAMD21G18 -if swd -speed 4000 -autoconnect 1 -CommandFile tools/setup.jlink

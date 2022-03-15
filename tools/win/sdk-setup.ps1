@@ -9,11 +9,11 @@ $arduinoCli = "$PSScriptRoot/arduino-cli.exe"
 Invoke-Expression "$arduinoCli config init --overwrite --additional-urls `"https://adafruit.github.io/arduino-board-index/package_adafruit_index.json,https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/package_pawpet_index.json`""
 Invoke-Expression "$arduinoCli core update-index"
 
-Invoke-Expression "$arduinoCli core install arduino:samd"
+# Invoke-Expression "$arduinoCli core install arduino:samd"
 Invoke-Expression "$arduinoCli core install adafruit:samd"
 Invoke-Expression "$arduinoCli core install nanocodebug:samd"
 
-Invoke-Expression "$arduinoCli lib install RTCZero  `"Adafruit GFX Library`" `"Adafruit BusIO`" `"Adafruit SPIFlash`" `"SdFat - Adafruit Fork`" `"Adafruit Zero DMA Library`"" 
+Invoke-Expression "$arduinoCli lib install RTCZero `"Adafruit GFX Library`" `"Adafruit BusIO`" `"Adafruit SPIFlash`" `"SdFat - Adafruit Fork`" `"Adafruit Zero DMA Library`"" 
 
 Invoke-Expression "$arduinoCli lib install ZeroRegs"
 

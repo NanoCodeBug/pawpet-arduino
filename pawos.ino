@@ -6,7 +6,7 @@
 #include <WInterrupts.h>
 #include <wiring_private.h>
 
-#include "src/lib/ArduinoLowPower.h"
+#include "src/lib/PawPet_InterruptHandler.h"
 #include "src/lib/PawPet_FlashTransport.h"
 #include "src/lib/RTCZero.h"
 
@@ -93,7 +93,7 @@ void setup(void)
     pinMode(PIN_BUTTON_C, INPUT_PULLUP);
 
     pinMode(PIN_BUTTON_P, INPUT_PULLUP);
-    // LowPower.attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
+    // InterruptHandler::attachInterruptWakeup(PIN_BUTTON_P, buttonWakeupCallback, FALLING);
 
     EExt_Interrupts in = g_APinDescription[PIN_BUTTON_P].ulExtInt;
     if (in == NOT_AN_INTERRUPT || in == EXTERNAL_INT_NMI)
@@ -191,6 +191,11 @@ void setup(void)
     printZeroRegs(opts);
 #endif
 
+#ifdef INSTALLER
+    InstallUtils::SetFuses(false, 0x2);
+    InstallUtils::format();
+#endif
+
 // disable and re-enable usb to get serial and usb msc at the same time
 #ifndef DEBUG
     USBDevice.detach();
@@ -220,7 +225,7 @@ uint16_t requestedFpsSleep = k_30_fpsSleepMs;
 bool dirtyFrameBuffer = false;
 void loop(void)
 {
-    Watchdog.reset();
+    Watchdog.fastReset();
 
     //// UPDATE ////
     keysState |= readButtons();

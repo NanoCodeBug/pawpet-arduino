@@ -1,9 +1,5 @@
-ExitOnError 1
 SelectInterface swd
 Speed 4000 
 r
-loadfile set_0xFF_noprotect.mot
-loadfile bootloader-feather_m0-v3.14.0.bin
-loadfile set_0xFA_protect.mot
-loadfile pawos_setup.hex
+loadfile board\setup\pawos_setup.hex
 exit

@@ -1,0 +1,6 @@
+ExitOnError 1
+SelectInterface swd
+Speed 4000 
+r
+loadfile build\pawos.ino.hex
+exit
