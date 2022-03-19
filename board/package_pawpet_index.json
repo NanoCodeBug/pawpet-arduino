@@ -10,13 +10,13 @@
         {
           "name": "PawPet SAMD Boards",
           "architecture": "samd",
-          "version": "1.0.1",
+          "version": "1.0.2",
           "deprecated": false,
           "category": "NanoCodeBug",
           "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.1.zip",
           "archiveFileName": "pawpet-1.0.1.zip",
-          "checksum": "SHA-256:CD03FFAF828D3FB029E6128E04C27590735200CC8D5B414A89DF18F4245F91BF",
-          "size": 631988,
+          "checksum": "SHA-256:2007924259040227B2129FF4C0F2735F28B7868F40E355E77C78745D1B060740",
+          "size": 631892,
           "boards": [
             {
               "name": "PawPet M0"

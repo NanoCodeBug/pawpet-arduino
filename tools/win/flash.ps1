@@ -26,6 +26,7 @@ if($serialPort)
 else 
 {
     Write-Host "Failed to find com port, define manually as arguement."   
+    return
 }
 
 # 

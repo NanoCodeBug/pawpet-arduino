@@ -59,6 +59,19 @@ void msc_flush_cb(void);
 bool msc_ready_cb();
 uint16_t intBat = 300;
 
+File logFile;
+
+void LogMsg(const char * msg)
+{
+    uint32_t uptime = (g::g_rtc.getEpoch() - g::g_stats.bootTime);
+    uint32_t ontime = millis()/1000/60;
+    uint16_t bat = Util::batteryLevel();
+
+    // message, uptime, ontime, voltage, buttonWakeup
+    logFile.printf("%s, %d, %d, %d, %d\n", msg, uptime, ontime, bat, buttonWakeup);
+    logFile.sync();
+}
+
 void setup(void)
 {
     g::g_flash = new Adafruit_SPIFlash(&flashTransport);
@@ -169,7 +182,7 @@ void setup(void)
     Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 
     buttonWakeup = false;
-    nextSleepTime = 40000;
+    nextSleepTime = millis() + 40000;
 #ifdef INSTALLER
     currentState = new InstallMenu();
 #else
@@ -184,6 +197,10 @@ void setup(void)
     g::g_stats.bootTime = g::g_rtc.getEpoch();
 
     intBat = Util::batteryLevel();
+
+    logFile = g::g_fatfs->open("log.txt", FILE_WRITE);
+
+    LogMsg("startup");
 
 #ifdef DEBUG
     // dump registers for debugging power settings
@@ -335,21 +352,21 @@ void loop(void)
         }
         display.sync();
 
+        buttonWakeup = false;
         // TODO: wakeup on flash chip not being triggered correctly
         // BUG: on reset after sleep flash doesn't show up until second reset
         // flashTransport.runCommand(0xB9); // deep sleep
-
         Watchdog.disable();
+        LogMsg("s");
+
         // LowPower.deepSleep(k_sleepTimeMs);
         Watchdog.sleep(WatchdogSAMD::WATCHDOG_TIMER_64_S);
+        LogMsg("w");
+
         Watchdog.enable(WatchdogSAMD::WATCHDOG_TIMER_2_S);
 
-        buttonWakeup = false;
-
-        if (!buttonWakeup)
-        {
-            sleepTicks++;
-        }
+        // technically incriments on button wakeup as well, but this is fine
+        sleepTicks++;
 
         //// SLEEP-BURN-IN-REFRESH ////
         // every 120 * k_sleepTimeMs refresh screen
@@ -516,6 +533,12 @@ void buttonWakeupCallback()
 {
     nextSleepTime = millis() + 60000;
     buttonWakeup = true;
+    // {
+    //     uint32_t t = (g::g_rtc.getEpoch() - g::g_stats.bootTime);
+
+    //     logFile.printf("b: %d\n", t);
+    //     logFile.sync();
+    // }
 }
 
 // Callback invoked when received READ10 command.

@@ -30,7 +30,7 @@ pawpet_m0.vid.1=0x239A
 pawpet_m0.pid.1=0x0015
 
 # Upload
-pawpet_m0.upload.tool=bossac19
+pawpet_m0.upload.tool=bossac
 pawpet_m0.upload.protocol=sam-ba
 pawpet_m0.upload.maximum_size=262144
 pawpet_m0.upload.offset=0x2000

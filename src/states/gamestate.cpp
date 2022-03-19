@@ -153,7 +153,16 @@ void StatsState::draw(PetDisplay *disp)
 
     int32_t ramUsage = ((int32_t)RAM_SIZE - Util::FreeRam()) * 100 / RAM_SIZE;
     disp->printf(" %02u%% %3uv\n", ramUsage, Util::batteryLevel());
-    disp->printf(" %uMB %s\n", g::g_stats.flashSize / 1024 / 1024, g::g_stats.filesysFound ? "FAT" : "N/A");
+    disp->printf(" %uMB", g::g_stats.flashSize / 1024 / 1024);
+    if(g::g_stats.filesysFound)
+    {
+       disp->printf(" %u%%\n", g::g_fatfs->vol()->freeClusterCount() * 100 / g::g_fatfs->vol()->clusterCount());
+    }
+    else
+    {
+        disp->printf(" N/A\n");
+    }
+
     disp->printf(" %s\n", BUILD_STRING);
 
     uint8_t cause = Watchdog.resetCause();
@@ -185,7 +194,8 @@ void StatsState::draw(PetDisplay *disp)
         break;
     }
     uint32_t minutes = (g::g_rtc.getEpoch() - g::g_stats.bootTime) / 60;
-    disp->printf("\n %um", minutes);
+    disp->printf("\nup: %um\n", minutes);
+    disp->printf("on: %um\n", millis()/1000/60);
 }
 
 AnimationTest::AnimationTest() : GameState(4), petSit(pet_sit)
