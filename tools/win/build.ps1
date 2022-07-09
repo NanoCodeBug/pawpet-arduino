@@ -82,7 +82,7 @@ if ($webSimulator)
         "-B$buildFolder\html", 
         "-G Ninja", 
         "-DCMAKE_TOOLCHAIN_FILE=$emsdkPath\upstream\emscripten\cmake\Modules\Platform\Emscripten.cmake",
-        "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+        "-DCMAKE_BUILD_TYPE=Release"
         )
 
     $Env:SDL2_DIR="$projectRoot\simulator\SDL2"

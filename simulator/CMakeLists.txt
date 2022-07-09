@@ -26,7 +26,6 @@ set(SIM_SRC
     ${PROJECT_ROOT}/simulator/fork/glcdfont.c
     ${PROJECT_ROOT}/simulator/fork/Print.cpp
     ${PROJECT_ROOT}/simulator/fork/display.cpp
-
 )
 
 add_executable(pawpet main.cpp pawos.cpp pawos.h ${SIM_SRC} ${SIM_INC} ${CORE_SRC} ${CORE_INC})
@@ -53,7 +52,7 @@ else()
     find_package(SDL2 REQUIRED)
     include_directories(${SDL2_INCLUDE_DIRS})
     target_link_libraries(pawpet ${SDL2_LIBRARIES})
-    # target_compile_options(pawpet PRIVATE -W0)
+    target_compile_options(pawpet PRIVATE -W0)
 
     configure_file(${SDL2_DIR}/lib/x64/SDL2.dll ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 endif()

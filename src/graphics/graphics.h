@@ -111,5 +111,5 @@ class PetAnimation
   private:
     PetSprite _spriteMap;
     uint8_t _currTick = 0;
-    uint16_t _frame = 0;
+    int16_t _frame = 0;
 };
