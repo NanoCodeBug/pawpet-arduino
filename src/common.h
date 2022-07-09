@@ -1,7 +1,11 @@
 #pragma once
 
 #include "config.h"
+#ifndef SIMULATOR
 #include <Arduino.h>
+#else
+#include <stdint.h>
+#endif
 
 // #define UF2_DEFINE_HANDOVER 1
 // #define SAMD21 1
@@ -19,9 +23,9 @@ struct meta_t
 
 struct image_t
 {
-    meta_t *meta = NULL;
-    uint16_t *tileOffsets = NULL; // array of offsets to start of each tile
-    uint32_t *data = NULL;
+    meta_t *meta = nullptr;
+    uint16_t *tileOffsets = nullptr; // array of offsets to start of each tile
+    uint32_t *data = nullptr;
 };
 
 #define PET_WHITE 0
@@ -45,13 +49,18 @@ enum ButtonFlags
     END = 0x100
 };
 
+#ifndef SIMULATOR
 extern "C" char *sbrk(int i);
+#endif
 
 class Util
 {
   public:
     inline static uint16_t batteryLevel()
     {
+#ifdef SIMULATOR
+        return 250;
+#else
         while (ADC->STATUS.bit.SYNCBUSY == 1) {}
         ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2_Val;  // Gain Factor Selection
         ADC->REFCTRL.bit.REFSEL = ADC_REFCTRL_REFSEL_INT1V_Val; // 1.0V voltage reference
@@ -65,11 +74,16 @@ class Util
 
         digitalWrite(PIN_VMON_EN, HIGH);
         return vbat * 100;
+#endif
     }
 
     static uint32_t FreeRam()
     {
+#ifdef SIMULATOR
+        return 0;
+#else
         char stack_dummy = 0;
         return &stack_dummy - reinterpret_cast<char *>(sbrk(0));
+#endif
     }
 };

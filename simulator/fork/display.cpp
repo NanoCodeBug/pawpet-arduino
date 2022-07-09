@@ -1,8 +1,5 @@
 
-#include "display.h"
-#ifndef SIMULATOR
-#include <wiring_private.h>
-#endif
+#include "../../src/graphics/display.h"
 
 volatile bool PetDisplay::_dma_complete = true;
 
@@ -57,7 +54,6 @@ volatile bool PetDisplay::_dma_complete = true;
 PetDisplay::PetDisplay(SPIClass *spi, uint8_t cs, uint16_t width, uint16_t height, uint32_t freq)
     : Adafruit_GFX(width, height), _cs(cs)
 {
-    _spi = new Adafruit_SPIDevice(cs, freq, SPI_BITORDER_LSBFIRST, SPI_MODE0, spi);
 }
 
 /**
@@ -66,14 +62,11 @@ PetDisplay::PetDisplay(SPIClass *spi, uint8_t cs, uint16_t width, uint16_t heigh
  *
  * @return boolean true: success false: failure
  */
-boolean PetDisplay::begin(void)
+bool PetDisplay::begin(void)
 {
     _vcom_manual = 0;
 
-    if (!_spi->begin())
-    {
-        return false;
-    }
+   
 
     // Set the vcom bit to a defined state
     _sharpmem_vcom = SHARPMEM_BIT_VCOM;
@@ -104,74 +97,17 @@ boolean PetDisplay::begin(void)
     _drawBuffer = _buffer1;
     _sendBuffer = _buffer2;
 
-    // SETUP DMA
-    _dma.setTrigger(SERCOM4_DMAC_ID_TX);
-    _dma.setAction(DMA_TRIGGER_ACTON_BEAT);
-
-    ZeroDMAstatus stat = _dma.allocate();
-    if (stat != DMA_STATUS_OK)
-    {
-        return false;
-    }
-
-    _dma.addDescriptor(_sendBuffer - 1,                  // move data from here
-                       (void *)(&SERCOM4->SPI.DATA.reg), // to here (M0)
-                       ((WIDTH + 16) * HEIGHT / 8) + 2,  // this many...
-                       DMA_BEAT_SIZE_BYTE,               // bytes/hword/words
-                       true,                             // increment source addr?
-                       false);                           // increment dest addr?
-
-    _dma.setCallback(PetDisplay::dma_callback);
-
-    GCLK->GENDIV.reg = GCLK_GENDIV_ID(4) | GCLK_GENDIV_DIV(7);
-
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_DIVSEL |
-                        GCLK_GENCTRL_RUNSTDBY; // | GCLK_GENCTRL_IDC;
-
-    while (GCLK->STATUS.bit.SYNCBUSY) {};
-
-    // PA10
-    // E-> TCC1/WO[0] -> PIO_TIMER //e
-    // F-> TCC0/WO[2] -> PIO_TIMER_ALT //f
-    pinPeripheral(DISP_COMIN, PIO_TIMER);
-
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_GEN_GCLK4 | GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_ID_TCC0_TCC1;
-    while (GCLK->STATUS.bit.SYNCBUSY) {};
-    
-    TCC1->CTRLA.bit.ENABLE = 0;
-    while( TCC1->SYNCBUSY.bit.ENABLE) {};
-
-    TCC1->CTRLA.bit.RUNSTDBY = 1;
-    TCC1->CTRLA.bit.ENABLE = 1;
-    while( TCC1->SYNCBUSY.bit.ENABLE) {};
-
-    TCC1->WAVE.reg |= TCC_WAVE_POL(0xF) |      // Reverse the output polarity on all TCC0 outputs
-                      TCC_WAVE_WAVEGEN_DSBOTH; // Setup dual slope PWM on TCC0
-    while (TCC1->SYNCBUSY.bit.WAVE) {};
-
-    // Each timer counts up to a maximum or TOP value set by the PER register,
-    // this determines the frequency of the PWM operation: Freq = 125hz/(2*N*PER)
-    TCC1->PER.reg = 64; // Set the FreqTcc of the PWM on TCC1
-    while (TCC1->SYNCBUSY.bit.PER) {};
-
-    // Set the PWM signal to output , PWM ds = 2*N(TOP-CCx)/Freqtcc => PWM=0 => CCx=PER, PWM=50% => CCx = PER/2
-    TCC1->CC[0].reg = 32; // TCC1 CC0 - on D11 50%
-    while (TCC1->SYNCBUSY.bit.CC0) {};
-
-    // Divide the GCLOCK signal by 1 giving in this case 125hz (20.83ns) TCC1 timer tick and enable the outputs
-    TCC1->CTRLA.reg |= TCC_CTRLA_PRESCALER_DIV1 | // Divide GCLK by 1
-                       TCC_CTRLA_ENABLE;          // Enable the TCC0 output
-    while (TCC1->SYNCBUSY.bit.ENABLE) {};
+   
 
     return true;
 }
 
 // 1 << n is a costly operation on AVR -- table usu. smaller & faster
-static const uint8_t PROGMEM set[] = {1, 2, 4, 8, 16, 32, 64, 128},
+static const uint8_t  set[] = {1, 2, 4, 8, 16, 32, 64, 128},
                              clr[] = {(uint8_t)~1,  (uint8_t)~2,  (uint8_t)~4,  (uint8_t)~8,
                                       (uint8_t)~16, (uint8_t)~32, (uint8_t)~64, (uint8_t)~128};
 
-static const uint8_t PROGMEM set1[] = {0x03, 0x0C, 0x30, 0xC0, 0x00, 0x00, 0x00, 0x00},
+static const uint8_t  set1[] = {0x03, 0x0C, 0x30, 0xC0, 0x00, 0x00, 0x00, 0x00},
                              clr1[] = {0xFC, 0xF3, 0xCF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF},
                              set2[] = {0x00, 0x00, 0x00, 0x00, 0x03, 0x0C, 0x30, 0xC0},
                              clr2[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0xF3, 0xCF, 0x3F};
@@ -217,11 +153,11 @@ void PetDisplay::drawSubPixel(int16_t x, int16_t y, uint16_t color)
 
     if (color)
     {
-        _drawBuffer[(y * (WIDTH + 16) + x) / 8] &= pgm_read_byte(&clr[x & 7]);
+        _drawBuffer[(y * (WIDTH + 16) + x) / 8] &= clr[x & 7];
     }
     else
     {
-        _drawBuffer[(y * (WIDTH + 16) + x) / 8] |= pgm_read_byte(&set[x & 7]);
+        _drawBuffer[(y * (WIDTH + 16) + x) / 8] |= set[x & 7];
     }
 }
 
@@ -258,7 +194,7 @@ uint8_t PetDisplay::getPixel(uint16_t x, uint16_t y)
         break;
     }
 
-    return _drawBuffer[(y * (WIDTH + 16) + x) / 8] & pgm_read_byte(&set1[x & 7]) ? 1 : 0;
+    return _drawBuffer[(y * (WIDTH + 16) + x) / 8] & set1[x & 7] ? 1 : 0;
 }
 
 /**************************************************************************/
@@ -269,17 +205,15 @@ uint8_t PetDisplay::getPixel(uint16_t x, uint16_t y)
 void PetDisplay::clearDisplay()
 {
     // Send the clear screen command rather than doing a HW refresh (quicker)
-    _spi->beginTransaction();
-    digitalWrite(_cs, HIGH);
+
 
     uint8_t clear_data[2];
     clear_data[0] = _sharpmem_vcom | SHARPMEM_BIT_CLEAR;
     clear_data[1] = 0x00;
-    _spi->transfer(clear_data, 2);
+
 
     TOGGLE_VCOM;
-    digitalWrite(_cs, LOW);
-    _spi->endTransaction();
+
 
     // empty display buffer
     fillDisplayBuffer();
@@ -287,10 +221,7 @@ void PetDisplay::clearDisplay()
 
 void PetDisplay::dma_callback(Adafruit_ZeroDMA *dma)
 {
-    digitalWrite(8, LOW);
-    // _spi->endTransaction();
-    SPI.endTransaction();
-    _dma_complete = true;
+
 }
 
 /**************************************************************************/
@@ -307,8 +238,7 @@ bool PetDisplay::refresh(void)
     _dma_complete = false;
 
     // SPI_BITORDER_LSBFIRST, SPI_MODE0
-    _spi->beginTransaction();
-    digitalWrite(_cs, HIGH);
+
 
     /**
      * TODO, remove? flips polarity, not clear if this is ever needed
@@ -339,12 +269,8 @@ bool PetDisplay::refresh(void)
     memcpy(_sendBuffer - 1, _drawBuffer - 1, (WIDTH + 16) * HEIGHT / 8 + 2);
 
     // start dma job
-    ZeroDMAstatus stat = _dma.startJob();
-    if (stat != DMA_STATUS_OK)
-    {
-        return false;
-    }
 
+    _dma_complete = true;
     return true;
 }
 

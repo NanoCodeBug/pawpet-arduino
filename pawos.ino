@@ -210,7 +210,11 @@ void setup(void)
 
 #ifdef INSTALLER
     InstallUtils::SetFuses(false, 0x2);
-    InstallUtils::format();
+    
+    if(!g::g_stats.filesysFound)
+    {
+        InstallUtils::format();
+    }
 #endif
 
 // disable and re-enable usb to get serial and usb msc at the same time

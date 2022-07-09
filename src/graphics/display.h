@@ -1,11 +1,19 @@
 #pragma once
 #include "../common.h"
 
+#ifdef SIMULATOR
+#include <Adafruit_GFX.h>
+class SPIClass {};
+class Adafruit_SPIDevice {};
+class Adafruit_ZeroDMA {};
+
+#else
 #include <Adafruit_GFX.h>
 #include <Adafruit_SPIDevice.h>
 #include <Adafruit_ZeroDMA.h>
 #include <utility/dma.h>
 
+#endif
 /**
  * Rewrite of Adafruit implementation of sharp memory lcd driver
  * adds DMA support
@@ -24,7 +32,7 @@ class PetDisplay : public Adafruit_GFX
 {
   public:
     PetDisplay(SPIClass *spi, uint8_t cs, uint16_t width, uint16_t height, uint32_t freq = 2000000);
-    boolean begin();
+    bool begin();
 
     // Overridden functions from Adafruit_GFX
     // special care to override users of memset
@@ -44,8 +52,9 @@ class PetDisplay : public Adafruit_GFX
 
     void initBuffer(uint8_t *buffer);
 
-  protected:
     uint8_t *_drawBuffer = NULL;
+
+  protected:
     uint8_t *_sendBuffer = NULL;
 
     uint8_t *_buffer1 = NULL;
@@ -93,10 +102,12 @@ class PetDisplay : public Adafruit_GFX
     }
 
   private:
+  #ifndef SIMULATOR
     inline void setPixel8(uint8_t x, int8_t y, uint8_t data)
     {
         _drawBuffer[(y * WIDTH + x) / 8] = pgm_read_byte(&data);
     }
+  #endif
 
     void drawSpanMap(uint32_t *bitmap, const uint8_t width, const uint8_t height, uint8_t dx, uint8_t dy,
                      uint8_t off_color = PET_WHITE, uint8_t on_color = PET_BLACK);

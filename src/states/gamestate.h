@@ -6,6 +6,10 @@
 #include "../graphics/graphics.h"
 #include "../sounds/pitches.h"
 
+#ifdef SIMULATOR
+#include <cstdlib>
+#endif
+
 struct Point2D
 {
     int16_t x;
@@ -106,7 +110,7 @@ class ToneScreen : public GameState
 
     int notes;
     int currentNote;
-    int noteDuration;
+    float noteDuration;
     int melody[120];
 };
 

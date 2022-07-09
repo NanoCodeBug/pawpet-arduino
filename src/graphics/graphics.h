@@ -39,8 +39,8 @@ class PetSprite
             return;
 
         delete _image.meta;
-        delete _image.tileOffsets;
-        delete _image.data;
+        delete [] _image.tileOffsets;
+        delete [] _image.data;
     }
 
     inline void draw(PetDisplay *disp, uint8_t dx, uint8_t dy, uint8_t frame = 0)
@@ -111,5 +111,5 @@ class PetAnimation
   private:
     PetSprite _spriteMap;
     uint8_t _currTick = 0;
-    int8_t _frame = 0;
+    uint16_t _frame = 0;
 };

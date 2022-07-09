@@ -10,13 +10,13 @@
         {
           "name": "PawPet SAMD Boards",
           "architecture": "samd",
-          "version": "1.0.3",
+          "version": "1.0.4",
           "deprecated": false,
           "category": "NanoCodeBug",
-          "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.3.zip",
-          "archiveFileName": "pawpet-1.0.3.zip",
-          "checksum": "SHA-256:061C10BEE6CAC85BA6FB0A2F53FAC917100C759A9CE35F11C0DA7A544DF53317",
-          "size": 627443,
+          "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.4.zip",
+          "archiveFileName": "pawpet-1.0.4.zip",
+          "checksum": "SHA-256:F8EE1905EF56EE5ABFABCC8B6159EF8E2750E2422919F064744CCBE5AA42CC9A",
+          "size": 626244,
           "boards": [
             {
               "name": "PawPet M0"
@@ -34,7 +34,7 @@
             {
               "packager": "arduino",
               "name": "bossac",
-              "version": "1.8.0-48-gb176eee"
+              "version": "1.9.1-arduino2"
             },
             {
               "packager": "arduino",

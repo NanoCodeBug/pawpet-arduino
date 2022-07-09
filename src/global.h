@@ -1,7 +1,11 @@
 #pragma once
+#ifndef SIMULATOR
 #include "lib/RTCZero.h"
 #include <Arduino.h>
 #include <Adafruit_SPIFlash.h>
+#else
+#include <stdint.h>
+#endif
 
 /**
  * Global objects and constants
@@ -38,9 +42,12 @@ namespace g
 {
 extern FatFileSystem *g_fatfs;
 extern GraphicCache *g_cache;
-extern RTCZero g_rtc;
 extern stats g_stats;
+
+#ifndef SIMULATOR
 extern Adafruit_SPIFlash *g_flash;
+extern RTCZero g_rtc;
+#endif
 
 extern uint32_t g_keyReleased;
 extern uint32_t g_keyPressed;

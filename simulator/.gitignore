@@ -4,7 +4,7 @@
 *.app
 
 /.vscode
-/build*
-SDL2
+build
+
 arduino-cli*
 bootloader-feather_m0-*

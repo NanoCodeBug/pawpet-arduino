@@ -1,5 +1,16 @@
 #include "gamestate.h"
+#ifdef SIMULATOR
+#include <cstdlib>
+
+void noTone(int) {}
+void tone(int, int, int) {}
+int random(int a, int b)
+{
+    return a + std::rand()/((RAND_MAX + 1u)/b);
+}
+#else
 #include "../lib/PawPet_SleepyDog.h"
+#endif
 
 GameState *MenuState::update()
 {
@@ -105,7 +116,6 @@ GameState *TestGame1::update()
 
         if (fallingObjs[s].y > DISP_HEIGHT)
         {
-
             fallingObjs[s].y = 0;
             fallingObjs[s].x = random(0, 8);
         }
@@ -154,6 +164,8 @@ void StatsState::draw(PetDisplay *disp)
     int32_t ramUsage = ((int32_t)RAM_SIZE - Util::FreeRam()) * 100 / RAM_SIZE;
     disp->printf(" %02u%% %3uv\n", ramUsage, Util::batteryLevel());
     disp->printf(" %uMB", g::g_stats.flashSize / 1024 / 1024);
+
+#ifndef SIMULATOR
     if(g::g_stats.filesysFound)
     {
        disp->printf(" %u%%\n", g::g_fatfs->vol()->freeClusterCount() * 100 / g::g_fatfs->vol()->clusterCount());
@@ -193,9 +205,13 @@ void StatsState::draw(PetDisplay *disp)
         disp->printf(" %s", "bit8");
         break;
     }
+
     uint32_t minutes = (g::g_rtc.getEpoch() - g::g_stats.bootTime) / 60;
+
     disp->printf("\nup: %um\n", minutes);
     disp->printf("on: %um\n", millis()/1000/60);
+#endif
+
 }
 
 AnimationTest::AnimationTest() : GameState(4), petSit(pet_sit)
@@ -309,17 +325,17 @@ GameState *ToneScreen::update()
     if (divider > 0)
     {
         // regular note, just proceed
-        noteDuration = (wholenote) / divider;
+        noteDuration = (float)wholenote / divider;
     }
     else if (divider < 0)
     {
         // dotted notes are represented with negative durations!!
-        noteDuration = (wholenote) / abs(divider);
-        noteDuration *= 1.5; // increases the duration in half for dotted notes
+        noteDuration = (float)wholenote / abs(divider);
+        noteDuration = noteDuration * 1.5f; // increases the duration in half for dotted notes
     }
 
     // we only play the note for 90% of the duration, leaving 10% as a pause
-    tone(PIN_BEEPER, melody[currentNote], noteDuration * 0.9);
+    tone(PIN_BEEPER, melody[currentNote], (uint16_t) (noteDuration * 0.9f));
 
     redraw = true;
 
