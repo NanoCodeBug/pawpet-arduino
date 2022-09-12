@@ -15,8 +15,8 @@
           "category": "NanoCodeBug",
           "url": "https://raw.githubusercontent.com/NanoCodeBug/pawpet/main/board/pawpet-1.0.5.zip",
           "archiveFileName": "pawpet-1.0.5.zip",
-          "checksum": "SHA-256:F8EE1905EF56EE5ABFABCC8B6159EF8E2750E2422919F064744CCBE5AA42CC9A",
-          "size": 626244,
+          "checksum": "SHA-256:3d71f6e69440664f4d77e51b6946e409ce825ed91b2f568576ba3243a413b43c",
+          "size": 651337,
           "boards": [
             {
               "name": "PawPet M0"
