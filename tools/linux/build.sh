@@ -7,4 +7,4 @@ echo $TOOLSPATH
 
 # curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
-$TOOLSPATH/arduino-cli compile --fqbn nanocodebug:samd:pawpet_m0:debug=on,opt=small pawos.ino
+$TOOLSPATH/arduino-cli compile --fqbn "nanocodebug:samd:pawpet_m0:debug=on,opt=small" pawos.ino --output-dir build
