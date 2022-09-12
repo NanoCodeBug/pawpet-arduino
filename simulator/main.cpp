@@ -52,7 +52,14 @@ uint32_t ticksForNextKeyDown = 0;
 
 bool handle_events()
 {
-    loop();
+    if (sleepMillisRemain > 0)
+    {
+        sleepMillisRemain--;
+    }
+    else
+    {
+        loop();
+    }
 
     SDL_Event event;
     SDL_PollEvent(&event);
@@ -94,6 +101,7 @@ bool handle_events()
                 break;
             case SDLK_v:
                 keysState |= 0x8;
+                sleepMillisRemain = 0;
                 break;
             }
             
@@ -101,7 +109,7 @@ bool handle_events()
     }
 
     redraw();
-    SDL_Delay(k_30_fpsSleepMs);
+    SDL_Delay(1);
     return true;
 }
 

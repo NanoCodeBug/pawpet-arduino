@@ -12,7 +12,9 @@ $projectRoot="$PSScriptRoot\..\.."
 $projectTools="$PSScriptRoot\..\..\tools"
 
 $cmakePath = 'C:\Program` Files\CMake\bin\cmake.exe'
-$emsdkPath = "C:\Users\nano\dev\emsdk"
+
+$ninjaPath = "$env:USERPROFILE\dev\ninja.exe"
+$emsdkPath = "$env:USERPROFILE\emsdk"
 
 $buildargs = @()
 
@@ -88,7 +90,7 @@ if ($webSimulator)
     $Env:SDL2_DIR="$projectRoot\simulator\SDL2"
 
     Invoke-Expression "$cmakePath $cmakeArgs"
-    Invoke-Expression "ninja.exe -C $buildFolder\html"
+    Invoke-Expression "$ninjaPath -C $buildFolder\html"
 }
 
 if ($simulator)
@@ -101,7 +103,7 @@ if ($simulator)
     New-Item -Path "$buildFolder\win32" -ItemType Directory -Force -ErrorAction Ignore
     
     $msvc = & 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -property installationpath -version 16.0
-    
+    Write-Host $msvc
     Import-Module (Join-Path $msvc "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
     
     Enter-VsDevShell -VsInstallPath $msvc -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -no_logo'
@@ -117,7 +119,7 @@ if ($simulator)
     
     # Start-Process -FilePath "$cmakePath" -ArgumentList $cmakeArgs -NoNewWindow -Wait
     Invoke-Expression "$cmakePath $cmakeArgs"
-    Invoke-Expression "ninja.exe -C $buildFolder\win32"
+    Invoke-Expression "$ninjaPath -C $buildFolder\win32"
 }
 
 

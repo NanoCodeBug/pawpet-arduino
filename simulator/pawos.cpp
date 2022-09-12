@@ -3,6 +3,8 @@
 
 #include <chrono>
 
+int32_t sleepMillisRemain = 0;
+
 PetDisplay display(nullptr, 0, DISP_WIDTH, DISP_HEIGHT);
 
 // used by usb and button interrupts to keep the device awake when in use
@@ -98,18 +100,12 @@ void loop(void)
         g::g_keyReleased = prevKeysState & ~(keysState);
         g::g_keyHeld = prevKeysState & keysState;
 
-        uint32_t t1 = millis();
         GameState *nextState = currentState->update();
-        uint32_t d1 = millis() - t1;
-        peakUpdateTime = (d1 > peakUpdateTime) ? d1 : peakUpdateTime;
 
         if (nextState != currentState)
         {
             delete currentState;
             currentState = nextState;
-
-            peakDrawTime = 0;
-            peakUpdateTime = 0;
 
             switch (nextState->tick)
             {
@@ -130,7 +126,6 @@ void loop(void)
             intBat = Util::batteryLevel();
         }
 
-        t1 = millis();
         if (currentState->redraw)
         {
             display.fillDisplayBuffer();
@@ -152,8 +147,6 @@ void loop(void)
             {
                 dirtyFrameBuffer = false;
 
-                d1 = millis() - t1;
-                peakDrawTime = (d1 > peakDrawTime) ? d1 : peakDrawTime;
                 display.refresh();
             }
         }

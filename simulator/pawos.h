@@ -11,12 +11,15 @@
 #include <../../src/global.h>
 #include <../../src/states/gamestate.h>
 
+#include <SDL.h>
+#include <SDL_rect.h>
 
 void init();
 void loop(void);
 
 extern PetDisplay display;
 extern uint8_t keysState;
+extern int32_t sleepMillisRemain;
 
 class WatchdogSAMD {
 public:
@@ -36,7 +39,9 @@ public:
     WATCHDOG_TIMER_128_S = 0xB
   };
 
-  void sleep(WatchdogSAMD::PawPet_WatchDog_Times m) {}
+  void sleep(WatchdogSAMD::PawPet_WatchDog_Times m) {
+        sleepMillisRemain = 64000;
+  }
 };
 
 #endif
