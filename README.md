@@ -42,18 +42,64 @@ TODO: consider a self packaged C# exe or python script?
 TODO: look into using openocd for flashing bootloader
 TODO: fork adafruit bootloader to have low power operation enabled by default, bootloader blocks startup below 2.2v right now. in theory device can operate to 1.9v before display cuts out
 
-
+---
 # Simulator
+A tool to simulate the pawpad on the computer.  
+Currently only supports Windows.
+
+## Requirements:
+
+- [Visual Studio Community/MSVC](https://visualstudio.microsoft.com/vs/community/)
+- [cmake](https://cmake.org/)
+- [SDL2](https://github.com/libsdl-org/SDL/releases)
+- [ninja](https://github.com/ninja-build/ninja/releases)
+- [emsdk](https://emscripten.org/index.html) (Optional for webSimulator)
+
+### Visual Studio Community
+When setting up visual studio community, make sure to select these features:
+"Desktop Development with C++"
+as we require MSVC  
+If you are using VSCode, see the following notes on launching VSCode from the Developer command prompt:  
+(https://code.visualstudio.com/docs/cpp/config-msvc#_check-your-microsoft-visual-c-installation)
+
+TODO: Could this possibly be switched to MinCG instead of using MSVC to remove the dependency of Visual Studio Community? [See here](https://code.visualstudio.com/docs/cpp/config-mingw)
+
+### cmake
+Install cmake to `C:\Program Files\CMake`
+
+### SDL2
+Download `SDL2-devel-[VERSION]-VC.zip` and place SDL2 in `.\simulator\SDL2`
+
+### Ninja
+Extract Ninja to `%userprofile%\dev\ninja.exe`
+
+### emsdk
+TODO
+
+## Build the simulator
 SDL2 and Webasm wrappers.
 
 `tools/win/build.ps1 -simulator`
 
-builds a SDL2 exe version of the pawpet
+builds a SDL2 exe version of the pawpet, can be run from `.\build\win32\pawpet.exe`
 
 `tools/win/build.ps1 -webSimulator`
 
 builds a webasm version of the pawpet
 
+## Controls
+The Simulator uses the following controls:
+```
+ - Arrow Keys: dpad operation
+ - Z - A Button: Open menu
+ - X - B Button
+ - C - C Button
+ - V - P Button: Select
+```
+
+Additional Information in [simulator notes](simulator/notes.md)
+
+---
 # Licensing 
 
 ## Code
