@@ -1,3 +1,6 @@
+# PawPet
+Hi! This is the deprecated ardiuno-c++ based codebase, I've moved to a Rust codebase at https://github.com/NanoCodeBug/pawpet. 
+
 # Build Instructions
 
 Arduino SDK, pin layout of board is identical to a Adafruit Feather M0. 
